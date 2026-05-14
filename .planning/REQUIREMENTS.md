@@ -140,12 +140,62 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| DESK-01 | Phase 1 - Local Profile Vault | Pending |
+| DESK-02 | Phase 5 - Export, Import, and Offline Release | Pending |
+| DESK-03 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| DESK-04 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| PROF-01 | Phase 1 - Local Profile Vault | Pending |
+| PROF-02 | Phase 1 - Local Profile Vault | Pending |
+| PROF-03 | Phase 1 - Local Profile Vault | Pending |
+| PROF-04 | Phase 1 - Local Profile Vault | Pending |
+| PROF-05 | Phase 1 - Local Profile Vault | Pending |
+| PROF-06 | Phase 1 - Local Profile Vault | Pending |
+| PROF-07 | Phase 1 - Local Profile Vault | Pending |
+| RESM-01 | Phase 2 - Resume Template and Editing Loop | Pending |
+| RESM-02 | Phase 2 - Resume Template and Editing Loop | Pending |
+| RESM-03 | Phase 2 - Resume Template and Editing Loop | Pending |
+| RESM-04 | Phase 2 - Resume Template and Editing Loop | Pending |
+| RESM-05 | Phase 2 - Resume Template and Editing Loop | Pending |
+| RESM-06 | Phase 2 - Resume Template and Editing Loop | Pending |
+| EDIT-01 | Phase 2 - Resume Template and Editing Loop | Pending |
+| EDIT-02 | Phase 2 - Resume Template and Editing Loop | Pending |
+| EDIT-03 | Phase 2 - Resume Template and Editing Loop | Pending |
+| EDIT-04 | Phase 2 - Resume Template and Editing Loop | Pending |
+| EDIT-05 | Phase 2 - Resume Template and Editing Loop | Pending |
+| EDIT-06 | Phase 2 - Resume Template and Editing Loop | Pending |
+| JOB-01 | Phase 3 - Job Targeting and Alignment | Pending |
+| JOB-02 | Phase 3 - Job Targeting and Alignment | Pending |
+| JOB-03 | Phase 3 - Job Targeting and Alignment | Pending |
+| JOB-04 | Phase 3 - Job Targeting and Alignment | Pending |
+| JOB-05 | Phase 3 - Job Targeting and Alignment | Pending |
+| AIPR-01 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| AIPR-02 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| AIPR-03 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| AIPR-04 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| AIPR-05 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| AIPR-06 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| AIPR-07 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| AIPR-08 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| GOV-01 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| GOV-02 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| GOV-03 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| GOV-04 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| GOV-05 | Phase 4 - AI Tailoring and Fact Governance | Pending |
+| EXPT-01 | Phase 5 - Export, Import, and Offline Release | Pending |
+| EXPT-02 | Phase 5 - Export, Import, and Offline Release | Pending |
+| EXPT-03 | Phase 5 - Export, Import, and Offline Release | Pending |
+| EXPT-04 | Phase 5 - Export, Import, and Offline Release | Pending |
+| EXPT-05 | Phase 5 - Export, Import, and Offline Release | Pending |
+| IMPT-01 | Phase 5 - Export, Import, and Offline Release | Pending |
+| IMPT-02 | Phase 5 - Export, Import, and Offline Release | Pending |
+| IMPT-03 | Phase 5 - Export, Import, and Offline Release | Pending |
+| IMPT-04 | Phase 5 - Export, Import, and Offline Release | Pending |
 
 **Coverage:**
 - v1 requirements: 50 total
-- Mapped to phases: 0
-- Unmapped: 50
+- Mapped to phases: 50
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-14*
-*Last updated: 2026-05-14 after initial definition*
+*Last updated: 2026-05-14 after roadmap creation*
