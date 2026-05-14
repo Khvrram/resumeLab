@@ -24,6 +24,8 @@ The app supports both structured editing and direct LaTeX editing with a live pr
 <!-- GSD:stack-start source:research/STACK.md -->
 ## Technology Stack
 
+**Active stack override:** Use Electron instead of Tauri/Rust. The project owner rejected Rust after the original research pass. Keep React/TypeScript/Vite for the renderer, move privileged local work to Electron main/preload modules, use SQLite from Node for durable data, and keep `nodeIntegration` disabled in the renderer.
+
 ## Recommendation
 ## Must-Have Stack Decisions
 | Decision | Recommendation | Why It Matters for ResumeLab | Confidence |

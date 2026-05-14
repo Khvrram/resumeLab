@@ -42,6 +42,7 @@ Progress: [----------] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- [Stack]: Use Electron instead of Tauri/Rust. Local privileged work moves to Electron main/preload modules with narrow IPC.
 - [Roadmap]: Coarse roadmap compresses the research-suggested 8 phases into 5 broader phases while preserving trust, data, document, AI, and release risk ordering.
 - [Architecture]: Profile facts remain canonical; resume drafts, LaTeX, DOCX, and AI proposals derive from structured document state.
 - [Privacy]: AI/provider work is gated behind egress preview and backend-only secret handling.

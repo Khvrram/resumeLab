@@ -56,6 +56,7 @@ The editor should feel similar to Overleaf for the resume document itself: LaTeX
 ## Constraints
 
 - **Runtime**: Desktop app - the first usable version should run locally as a desktop application.
+- **Desktop stack**: Electron, not Tauri/Rust - the project owner explicitly rejected Rust after initial scaffolding.
 - **Privacy**: Offline except AI calls - profile data and resumes should stay local unless the user explicitly sends selected context to an AI provider.
 - **AI providers**: User-supplied keys - v1 should let users configure keys for OpenAI, Anthropic, Google, and OpenRouter-style providers rather than relying on a hosted backend.
 - **Factual accuracy**: AI cannot invent facts - it may rephrase existing truths and suggest additions for user approval, but factual additions require explicit user action.
@@ -69,6 +70,7 @@ The editor should feel similar to Overleaf for the resume document itself: LaTeX
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Build a desktop app first | The product should feel local, private, and self-contained rather than hosted. | - Pending |
+| Use Electron instead of Tauri/Rust | The project owner strongly prefers not to use Rust; Electron keeps the desktop model while using Node for local privileged work. | - Pending |
 | Use a structured profile database as the source of truth | Job-specific resumes can be regenerated without losing canonical career facts. | - Pending |
 | Support both structured editing and raw LaTeX editing | Structured data keeps facts reusable; LaTeX gives precise control over final formatting. | - Pending |
 | Use the user's existing LaTeX template for v1 | The fastest path to a useful v1 is making one strong template work well. | - Pending |
@@ -94,4 +96,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-14 after initialization*
+*Last updated: 2026-05-14 after Electron stack override*

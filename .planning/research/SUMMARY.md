@@ -7,6 +7,8 @@
 
 ## Executive Summary
 
+**Stack override, 2026-05-14:** The initial research recommended Tauri/Rust, but the project owner rejected Rust. Treat Electron + React/TypeScript/Vite + Node main process as the active desktop stack. The same trust boundary still applies: renderer code is UI only, while SQLite, filesystem access, sidecars, provider calls, and secret storage belong behind narrow Electron IPC in the main/preload layer.
+
 ResumeLab should be built as a local-first desktop document tool, not as another cloud AI resume builder. The strongest product wedge is a private career fact database that produces truthful, job-tailored resumes with AI assistance, LaTeX control, and user-owned exports. Experts build this kind of product by separating canonical profile facts from job-specific resume drafts and rendered artifacts, then enforcing provenance so every generated claim is traceable to approved facts or explicitly marked as unsupported.
 
 The recommended implementation is a Tauri 2 desktop app with a React/TypeScript/Vite frontend and a Rust core. Rust should own SQLite access, migrations, file IO, sidecar execution, AI provider calls, secret lookup, export, and privacy/egress policy. The frontend should own the editing and review experience: structured profile forms, LaTeX source editing, PDF preview, AI diff approval, diagnostics, and settings surfaces. Use a structured resume document model between profile facts and renderers so LaTeX/PDF, DOCX, AI validation, and structured editing all share one semantic source.

@@ -7,6 +7,8 @@
 
 ## Recommendation
 
+**Stack override, 2026-05-14:** The project owner rejected Rust. Use **Electron + React/TypeScript/Vite** instead of Tauri/Rust. Keep the same security model: the renderer is UI-only, while the Electron main process owns SQLite, filesystem access, sidecars, provider HTTP calls, and secret lookup through narrow IPC.
+
 Build ResumeLab as a **Tauri 2 desktop app with a React/TypeScript/Vite frontend and a Rust backend**. Keep all trusted capabilities in Rust: SQLite access, file IO, LaTeX compilation, export, provider calls, and API-key lookup. The frontend should be a UI/editor surface, not the owner of secrets, raw SQL, or unrestricted shell access.
 
 Use **SQLite plus SQLx** as the local source of truth, **CodeMirror 6 plus PDF.js** for the Overleaf-like editing surface, **Tectonic** as the primary LaTeX compiler sidecar, and **DOCX generation from structured resume data** rather than relying on arbitrary LaTeX-to-DOCX conversion. AI integration should be provider adapters over direct HTTPS from Rust, with user API keys stored in the OS credential store.

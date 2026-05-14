@@ -19,18 +19,20 @@ Current focus: Phase 1 - Local Profile Vault.
 
 ## Stack Direction
 
-The research-backed default stack is:
+The active stack override is Electron, because the project owner rejected Rust/Tauri after the initial research pass.
 
-- Desktop shell: Tauri 2
+- Desktop shell: Electron
 - Frontend: React, TypeScript, Vite
-- Backend: Rust Tauri commands
-- Local data: SQLite with SQLx migrations
+- Backend: Electron main process with narrow preload/IPC bridges
+- Local data: SQLite from Node in the main process
 - LaTeX editor: CodeMirror 6
 - PDF preview: PDF.js
 - LaTeX compile: Tectonic sidecar first, TeX Live/MiKTeX fallback later
 - DOCX export: generate from structured resume data, not arbitrary LaTeX conversion
-- Provider calls: Rust HTTP adapters for OpenAI, Anthropic, Google, and OpenRouter-compatible APIs
+- Provider calls: Electron main-process HTTP adapters for OpenAI, Anthropic, Google, and OpenRouter-compatible APIs
 - Secrets: OS keyring; do not store provider keys in frontend state, logs, config files, or SQLite
+
+Security rule: keep `nodeIntegration` disabled in the renderer. Filesystem, SQLite, sidecars, provider calls, and secrets belong in Electron main/preload capabilities with narrow typed IPC.
 
 ## Non-Negotiable Product Rules
 
