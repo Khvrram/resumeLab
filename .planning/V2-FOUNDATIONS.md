@@ -1,13 +1,13 @@
 # V2 Foundations Scope Record
 
 **Created:** 2026-05-14
-**Status:** Foundations slice implemented
+**Status:** Local workflow slice implemented
 **Related requirements:** v2 requirements in `.planning/REQUIREMENTS.md`
 **Current focus:** Non-destructive v2 foundations after v1 Phase 1 scaffold
 
 ## Intent
 
-Document the safe first step toward v2 without bypassing unfinished v1 phases. This record does not replace the active roadmap. It defines what has been prepared now and what must remain deferred until the v1 data, document, job, AI, and export foundations exist.
+Document the safe first step toward v2 without bypassing unfinished v1 phases. This record does not replace the active roadmap. It defines what local workflows are implemented now and what must remain deferred until the v1 data, document, job, AI, and export foundations exist.
 
 The current app has a Phase 1 profile vault scaffold with renderer `localStorage` persistence. Future durable storage is expected to move to SQLite through Electron main-process services and narrow preload/IPC bridges.
 
@@ -53,7 +53,7 @@ It also does not implement public sharing, collaboration, full job-board scrapin
 
 - This record maps every v2 requirement group from `.planning/REQUIREMENTS.md` to safe foundations and deferred implementation.
 - `docs/v2-foundations.md` provides the concise product and engineering integration plan.
-- `src/domain/v2.ts`, `src/storage/v2Repository.ts`, and `src/components/V2Workspace.tsx` add an isolated local-only v2 foundation surface without changing v1 profile-vault behavior.
+- `src/domain/v2.ts`, `src/domain/v2Actions.ts`, `src/storage/v2Repository.ts`, and `src/components/V2Workspace.tsx` add isolated local-only v2 workflows without changing v1 profile-vault behavior.
 - Existing roadmap, requirements, state, and package files are unchanged.
 - The scope preserves Electron security boundaries: privileged work belongs in main/preload services, not renderer direct access.
 - The scope preserves fact governance: unsupported claims cannot enter drafts or profile data without explicit user approval.

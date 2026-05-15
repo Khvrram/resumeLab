@@ -1,16 +1,17 @@
-# v2 Foundations
+# v2 Local Workflows
 
-This document scopes the first v2 pass for ResumeLab. It is a foundations pass, not a full v2 implementation. The goal is to prepare safe extension points for later v2 work while preserving the v1 local-first resume workflow and avoiding destructive changes to unfinished v1 phases.
+This document scopes the current v2 local workflow pass for ResumeLab. The app now includes usable local records and actions for template setup, job tracking, prompt previews, and local model endpoint checks while preserving the v1 local-first resume workflow.
 
 ## Product Scope
 
 ResumeLab v2 expands the product beyond a single local resume tailoring loop into a broader job-search workspace. The eventual v2 direction includes template choice, application tracking, cover letters, richer provider workflows, optional sync/collaboration, and advanced editing assistance.
 
-The current v2 foundations pass should build only the pieces that can coexist with v1:
+The current v2 pass builds pieces that can coexist with v1:
 
-- Define stable boundaries for template metadata, template mapping, and future template customization.
-- Prepare local job application records that can later connect to job targets, tailored resumes, and cover letters.
-- Shape provider abstractions so cloud providers, local-provider adapters, run comparison, and prompt profiles can share one execution model later.
+- Create, duplicate, remove, and edit template records with LaTeX mapping placeholders.
+- Create and edit local job application records, paste job descriptions, and extract local requirements, keywords, tools, responsibilities, and seniority signals.
+- Create, duplicate, remove, and edit prompt profiles with rendered prompt previews.
+- Register local model endpoints and check their model-list endpoint readiness.
 - Preserve stable IDs, revision records, and provenance needed for future sync, review, and collaboration.
 - Add editing anchors that can later support source-to-preview navigation without requiring SyncTeX in this pass.
 
@@ -87,6 +88,6 @@ Each v2 group should start with contracts and local-only data paths, then become
 - `.planning/V2-FOUNDATIONS.md` maps each v2 requirement group to safe foundations and deferred implementation.
 - `src/domain/v2.ts` defines the first local-only data contracts for template metadata, application tracking, prompt profiles, local model endpoints, advanced editing flags, and future sync settings.
 - `src/storage/v2Repository.ts` persists those contracts in an isolated renderer storage key until the v1 SQLite boundary is ready.
-- `src/components/V2Workspace.tsx` exposes an editable V2 Lab surface that is explicit about foundations-only status.
+- `src/components/V2Workspace.tsx` exposes editable V2 workflows for templates, jobs, prompts, and local model endpoints.
 - The documents explicitly state that cloud sync, browser extension capture, actual local LLM inference, and SyncTeX are not part of the first v2 pass.
 - The plan preserves local-first behavior, explicit AI egress review, user-owned secrets, and fact governance.

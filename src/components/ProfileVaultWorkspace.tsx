@@ -51,9 +51,17 @@ import {
   resetProfileSampleData,
   saveProfileToRepository,
 } from "./profileRepositoryAdapter";
+import {
+  buildAiEgressPreview,
+  buildResumeDraft,
+  createResumeFileName,
+  renderResumeLatex,
+  renderResumePlainText,
+} from "../domain/resumeDraft";
 
 type SectionId =
   | "basics"
+  | "draft"
   | "experience"
   | "projects"
   | "education"
@@ -77,6 +85,12 @@ const navItems: NavItem[] = [
     icon: IdentificationCard,
     count: (profile) =>
       profile.basics.fullName.trim() || profile.basics.email.trim() ? 1 : 0,
+  },
+  {
+    id: "draft",
+    label: "Resume Draft",
+    icon: ListChecks,
+    count: (profile) => (isProfileEmpty(profile) ? 0 : 1),
   },
   {
     id: "experience",
@@ -183,6 +197,16 @@ const formatUpdatedAt = (value: string) => {
     hour: "numeric",
     minute: "2-digit",
   });
+};
+
+const downloadTextFile = (fileName: string, contents: string, type: string) => {
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(url);
 };
 
 export function ProfileVaultWorkspace() {
@@ -569,6 +593,8 @@ function ActiveSection({
   switch (activeSection) {
     case "basics":
       return <BasicsSection profile={profile} updateProfile={updateProfile} />;
+    case "draft":
+      return <ResumeDraftSection profile={profile} />;
     case "experience":
       return <ExperienceSection profile={profile} updateProfile={updateProfile} />;
     case "projects":
@@ -584,6 +610,118 @@ function ActiveSection({
     default:
       return null;
   }
+}
+
+function ResumeDraftSection({ profile }: { profile: ResumeProfile }) {
+  const [jobDescription, setJobDescription] = useState("");
+  const draft = useMemo(
+    () => buildResumeDraft(profile, { jobDescription }),
+    [jobDescription, profile],
+  );
+  const plainText = useMemo(() => renderResumePlainText(draft), [draft]);
+  const latex = useMemo(() => renderResumeLatex(draft), [draft]);
+  const egressPreview = useMemo(
+    () => buildAiEgressPreview(profile, jobDescription),
+    [jobDescription, profile],
+  );
+
+  return (
+    <SectionPanel
+      action={
+        <div className="flex flex-wrap gap-2">
+          <button
+            className={secondaryButtonClass}
+            onClick={() =>
+              downloadTextFile(
+                createResumeFileName(profile, "txt"),
+                plainText,
+                "text/plain",
+              )
+            }
+            type="button"
+          >
+            <DownloadSimple size={16} />
+            Export TXT
+          </button>
+          <button
+            className={secondaryButtonClass}
+            onClick={() =>
+              downloadTextFile(
+                createResumeFileName(profile, "tex"),
+                latex,
+                "application/x-tex",
+              )
+            }
+            type="button"
+          >
+            <DownloadSimple size={16} />
+            Export LaTeX
+          </button>
+        </div>
+      }
+      icon={ListChecks}
+      subtitle="Generate an ATS-friendly local draft from resume-ready facts and a pasted job description."
+      title="Resume Draft"
+    >
+      <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
+        <TextArea
+          label="Job description"
+          onChange={setJobDescription}
+          placeholder="Paste the role description here."
+          value={jobDescription}
+        />
+        <div className="grid gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-4">
+          <div>
+            <p className="text-sm font-medium text-zinc-600">Local match score</p>
+            <p className="mt-1 font-mono text-3xl font-semibold text-zinc-950">
+              {draft.match.score}
+              <span className="text-base text-zinc-500">/100</span>
+            </p>
+          </div>
+          <div className="grid gap-1 text-sm">
+            <span className="font-medium text-zinc-700">Matched tools</span>
+            <span className="text-zinc-600">
+              {draft.match.matchedTools.join(", ") || "None yet"}
+            </span>
+          </div>
+          <div className="grid gap-1 text-sm">
+            <span className="font-medium text-zinc-700">Missing keywords</span>
+            <span className="text-zinc-600">
+              {draft.match.missingKeywords.slice(0, 8).join(", ") || "None"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <label className="grid min-w-0 gap-2 text-sm">
+          <span className="font-medium text-zinc-700">Generated resume text</span>
+          <textarea
+            className={`${textareaClass} min-h-[28rem] font-mono text-xs leading-5`}
+            readOnly
+            value={plainText}
+          />
+        </label>
+        <label className="grid min-w-0 gap-2 text-sm">
+          <span className="font-medium text-zinc-700">Generated LaTeX</span>
+          <textarea
+            className={`${textareaClass} min-h-[28rem] font-mono text-xs leading-5`}
+            readOnly
+            value={latex}
+          />
+        </label>
+      </div>
+
+      <label className="grid min-w-0 gap-2 text-sm">
+        <span className="font-medium text-zinc-700">AI egress preview</span>
+        <textarea
+          className={`${textareaClass} min-h-56 font-mono text-xs leading-5`}
+          readOnly
+          value={egressPreview}
+        />
+      </label>
+    </SectionPanel>
+  );
 }
 
 function BasicsSection({

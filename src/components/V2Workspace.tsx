@@ -5,11 +5,14 @@ import {
   CheckCircle,
   Cloud,
   Cpu,
+  Copy,
   DownloadSimple,
   FloppyDisk,
   Palette,
+  Plus,
   Robot,
   Sliders,
+  Trash,
   WarningCircle,
   type Icon,
 } from "@phosphor-icons/react";
@@ -17,12 +20,26 @@ import {
   type JobApplication,
   type JobApplicationStatus,
   type LocalModelEndpoint,
+  type LocalModelProviderKind,
   type LocalModelReadinessStatus,
   type PromptProfile,
+  type RemotePolicy,
   type TemplateDefinition,
   type TemplateGalleryCategory,
   type V2WorkspaceState,
 } from "../domain/v2";
+import {
+  checkLocalModelEndpoint,
+  createJobApplication,
+  createLocalModelEndpoint,
+  createPromptProfile,
+  createTemplateDefinition,
+  duplicatePromptProfile,
+  duplicateTemplateDefinition,
+  refreshJobApplicationSignals,
+  renderPromptPreview,
+  updateJobApplicationStatus,
+} from "../domain/v2Actions";
 import { createV2Repository } from "../storage/v2Repository";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -66,18 +83,6 @@ const sections: SectionDefinition[] = [
     description: "Ollama and compatible endpoints",
     icon: Cpu,
   },
-  {
-    id: "advanced",
-    label: "Advanced Editing",
-    description: "SyncTeX, review, import",
-    icon: Sliders,
-  },
-  {
-    id: "sync",
-    label: "Future Sync",
-    description: "Deferred collaboration foundation",
-    icon: Cloud,
-  },
 ];
 
 const jobStatuses: JobApplicationStatus[] = [
@@ -109,6 +114,15 @@ const modelReadiness: LocalModelReadinessStatus[] = [
   "error",
 ];
 
+const remotePolicies: RemotePolicy[] = ["unknown", "remote", "hybrid", "onsite"];
+
+const localModelProviderKinds: LocalModelProviderKind[] = [
+  "ollama",
+  "lm-studio",
+  "openai-compatible",
+  "custom",
+];
+
 const repository = createV2Repository();
 
 const inputClass =
@@ -122,6 +136,12 @@ const primaryButtonClass =
 
 const secondaryButtonClass =
   "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+
+const compactButtonClass =
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-zinc-300 bg-white px-2.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+
+const compactDangerButtonClass =
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-red-200 bg-white px-2.5 text-xs font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px";
 
 export function V2Workspace() {
   const [activeSection, setActiveSection] = useState<V2SectionId>("templates");
@@ -144,7 +164,7 @@ export function V2Workspace() {
 
         if (isMounted) {
           setWorkspace(loaded);
-          setNotice("Loaded v2 foundations from local storage.");
+          setNotice("Loaded v2 workspace from local storage.");
         }
       } catch (error) {
         if (isMounted) {
@@ -212,7 +232,7 @@ export function V2Workspace() {
       setWorkspace(nextWorkspace);
       setIsDirty(false);
       setSaveState("saved");
-      setNotice("Saved v2 foundations locally.");
+      setNotice("Saved v2 workspace locally.");
     } catch (error) {
       setSaveState("error");
       setErrorMessage(formatError(error));
@@ -228,7 +248,7 @@ export function V2Workspace() {
       setWorkspace(sample);
       setIsDirty(false);
       setSaveState("saved");
-      setNotice("Reset v2 foundations to sample data.");
+      setNotice("Reset v2 workspace to sample data.");
     } catch (error) {
       setSaveState("error");
       setErrorMessage(formatError(error));
@@ -236,18 +256,22 @@ export function V2Workspace() {
   };
 
   const handleExport = async () => {
+    if (!workspace) {
+      return;
+    }
+
     try {
-      const json = await repository.exportJson();
+      const json = JSON.stringify(workspace, null, 2);
       const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `resumelab-v2-foundations-${new Date()
+      anchor.download = `resumelab-v2-workspace-${new Date()
         .toISOString()
         .slice(0, 10)}.json`;
       anchor.click();
       URL.revokeObjectURL(url);
-      setNotice("Exported v2 foundations JSON.");
+      setNotice("Exported v2 workspace JSON.");
     } catch (error) {
       setErrorMessage(formatError(error));
     }
@@ -260,8 +284,8 @@ export function V2Workspace() {
           <div className="border-b border-zinc-200 p-4">
             <p className="text-sm font-semibold text-zinc-950">V2 Lab</p>
             <p className="mt-1 text-sm leading-6 text-zinc-600">
-              Foundations for deferred roadmap features. These are metadata and
-              workflow surfaces, not full cloud/AI implementations.
+              Build job targets, templates, prompt profiles, and local model
+              endpoints as editable local records.
             </p>
           </div>
 
@@ -309,16 +333,15 @@ export function V2Workspace() {
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap gap-2">
-                  <Badge>Foundations only</Badge>
+                  <Badge>Local workflows</Badge>
                   <Badge>{isDirty ? "Unsaved changes" : "Saved baseline"}</Badge>
                 </div>
                 <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
-                  V2 Feature Foundations
+                  V2 Job Search Workspace
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
-                  Start v2 without pretending unfinished v1 systems exist yet:
-                  template metadata, job tracking, prompt profiles, local model
-                  configuration, advanced-editing flags, and sync placeholders.
+                  Create real local records for job applications, template
+                  mapping, prompt previews, and local model endpoint checks.
                 </p>
               </div>
 
@@ -423,6 +446,7 @@ function ActiveV2Section({
     case "prompts":
       return (
         <PromptsPanel
+          jobs={workspace.jobApplications}
           prompts={workspace.promptProfiles}
           updateWorkspace={updateWorkspace}
         />
@@ -457,6 +481,13 @@ function TemplatesPanel({
     updater: (workspace: V2WorkspaceState) => V2WorkspaceState,
   ) => void;
 }) {
+  const addTemplate = () => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      templates: [createTemplateDefinition(), ...workspace.templates],
+    }));
+  };
+
   const updateTemplate = (id: string, patch: Partial<TemplateDefinition>) => {
     updateWorkspace((workspace) => ({
       ...workspace,
@@ -466,15 +497,59 @@ function TemplatesPanel({
     }));
   };
 
+  const duplicateTemplate = (template: TemplateDefinition) => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      templates: [duplicateTemplateDefinition(template), ...workspace.templates],
+    }));
+  };
+
+  const removeTemplate = (id: string) => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      templates: workspace.templates.filter((template) => template.id !== id),
+    }));
+  };
+
   return (
     <Panel
+      action={
+        <button className={secondaryButtonClass} onClick={addTemplate} type="button">
+          <Plus size={16} />
+          Add template
+        </button>
+      }
       icon={Palette}
-      subtitle="Template gallery entries and guided LaTeX mapping metadata."
-      title="Template Foundations"
+      subtitle="Create and edit local LaTeX template records with mapping placeholders."
+      title="Templates"
     >
       <div className="grid gap-4">
         {templates.map((template) => (
-          <Item key={template.id} kicker={template.source} title={template.name}>
+          <Item
+            action={
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={compactButtonClass}
+                  onClick={() => duplicateTemplate(template)}
+                  type="button"
+                >
+                  <Copy size={14} />
+                  Duplicate
+                </button>
+                <button
+                  className={compactDangerButtonClass}
+                  onClick={() => removeTemplate(template.id)}
+                  type="button"
+                >
+                  <Trash size={14} />
+                  Remove
+                </button>
+              </div>
+            }
+            key={template.id}
+            kicker={template.source}
+            title={template.name}
+          >
             <div className="grid gap-4 lg:grid-cols-2">
               <TextInput
                 label="Template name"
@@ -506,6 +581,18 @@ function TemplatesPanel({
               }
               value={template.tags.join(", ")}
             />
+            <TextArea
+              label="Required placeholders"
+              onChange={(requiredPlaceholders) =>
+                updateTemplate(template.id, {
+                  importGuide: {
+                    ...template.importGuide,
+                    requiredPlaceholders: commaTextToList(requiredPlaceholders),
+                  },
+                })
+              }
+              value={template.importGuide.requiredPlaceholders.join(", ")}
+            />
           </Item>
         ))}
       </div>
@@ -522,6 +609,13 @@ function JobsPanel({
     updater: (workspace: V2WorkspaceState) => V2WorkspaceState,
   ) => void;
 }) {
+  const addJob = () => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      jobApplications: [createJobApplication(), ...workspace.jobApplications],
+    }));
+  };
+
   const updateJob = (id: string, patch: Partial<JobApplication>) => {
     updateWorkspace((workspace) => ({
       ...workspace,
@@ -531,15 +625,70 @@ function JobsPanel({
     }));
   };
 
+  const updateStatus = (job: JobApplication, status: JobApplicationStatus) => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      jobApplications: workspace.jobApplications.map((item) =>
+        item.id === job.id ? updateJobApplicationStatus(job, status) : item,
+      ),
+    }));
+  };
+
+  const refreshSignals = (job: JobApplication) => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      jobApplications: workspace.jobApplications.map((item) =>
+        item.id === job.id ? refreshJobApplicationSignals(job) : item,
+      ),
+    }));
+  };
+
+  const removeJob = (id: string) => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      jobApplications: workspace.jobApplications.filter((job) => job.id !== id),
+    }));
+  };
+
   return (
     <Panel
+      action={
+        <button className={secondaryButtonClass} onClick={addJob} type="button">
+          <Plus size={16} />
+          Add job
+        </button>
+      }
       icon={Briefcase}
-      subtitle="Application status metadata without browser extension or live scraping yet."
-      title="Job Tracker Foundations"
+      subtitle="Create applications, paste job descriptions, extract local signals, and track status."
+      title="Job Tracker"
     >
       <div className="grid gap-4">
         {jobs.map((job) => (
-          <Item key={job.id} kicker={job.company} title={job.roleTitle}>
+          <Item
+            action={
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={compactButtonClass}
+                  onClick={() => refreshSignals(job)}
+                  type="button"
+                >
+                  <CheckCircle size={14} />
+                  Extract
+                </button>
+                <button
+                  className={compactDangerButtonClass}
+                  onClick={() => removeJob(job.id)}
+                  type="button"
+                >
+                  <Trash size={14} />
+                  Remove
+                </button>
+              </div>
+            }
+            key={job.id}
+            kicker={job.company}
+            title={job.roleTitle}
+          >
             <div className="grid gap-4 lg:grid-cols-3">
               <TextInput
                 label="Role title"
@@ -553,28 +702,87 @@ function JobsPanel({
               />
               <SelectInput
                 label="Status"
-                onChange={(status) => updateJob(job.id, { status })}
+                onChange={(status) => updateStatus(job, status)}
                 options={jobStatuses}
                 value={job.status}
               />
             </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <TextInput
+                label="Location"
+                onChange={(location) => updateJob(job.id, { location })}
+                value={job.location}
+              />
+              <SelectInput
+                label="Remote policy"
+                onChange={(remotePolicy) => updateJob(job.id, { remotePolicy })}
+                options={remotePolicies}
+                value={job.remotePolicy}
+              />
+              <TextInput
+                label="Source URL"
+                onChange={(url) =>
+                  updateJob(job.id, {
+                    source: {
+                      ...job.source,
+                      url,
+                    },
+                  })
+                }
+                value={job.source.url ?? ""}
+              />
+            </div>
+            <TextArea
+              label="Job description"
+              onChange={(jobDescription) => updateJob(job.id, { jobDescription })}
+              value={job.jobDescription}
+            />
             <TextArea
               label="Notes"
               onChange={(notes) => updateJob(job.id, { notes })}
               value={job.notes}
             />
-            <TextArea
-              label="Tracked keywords"
-              onChange={(keywords) =>
-                updateJob(job.id, {
-                  signalReview: {
-                    ...job.signalReview,
-                    keywords: commaTextToList(keywords),
-                  },
-                })
-              }
-              value={job.signalReview.keywords.join(", ")}
-            />
+            <div className="grid gap-4 lg:grid-cols-3">
+              <TextArea
+                label="Requirements"
+                onChange={(requirements) =>
+                  updateJob(job.id, {
+                    signalReview: {
+                      ...job.signalReview,
+                      requirements: lineTextToList(requirements),
+                      userReviewed: true,
+                    },
+                  })
+                }
+                value={job.signalReview.requirements.join("\n")}
+              />
+              <TextArea
+                label="Tracked keywords"
+                onChange={(keywords) =>
+                  updateJob(job.id, {
+                    signalReview: {
+                      ...job.signalReview,
+                      keywords: commaTextToList(keywords),
+                      userReviewed: true,
+                    },
+                  })
+                }
+                value={job.signalReview.keywords.join(", ")}
+              />
+              <TextArea
+                label="Tools"
+                onChange={(tools) =>
+                  updateJob(job.id, {
+                    signalReview: {
+                      ...job.signalReview,
+                      tools: commaTextToList(tools),
+                      userReviewed: true,
+                    },
+                  })
+                }
+                value={job.signalReview.tools.join(", ")}
+              />
+            </div>
           </Item>
         ))}
       </div>
@@ -583,14 +791,25 @@ function JobsPanel({
 }
 
 function PromptsPanel({
+  jobs,
   prompts,
   updateWorkspace,
 }: {
+  jobs: JobApplication[];
   prompts: PromptProfile[];
   updateWorkspace: (
     updater: (workspace: V2WorkspaceState) => V2WorkspaceState,
   ) => void;
 }) {
+  const previewJob = jobs[0] ?? null;
+
+  const addPrompt = () => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      promptProfiles: [createPromptProfile(), ...workspace.promptProfiles],
+    }));
+  };
+
   const updatePrompt = (id: string, patch: Partial<PromptProfile>) => {
     updateWorkspace((workspace) => ({
       ...workspace,
@@ -600,15 +819,59 @@ function PromptsPanel({
     }));
   };
 
+  const duplicatePrompt = (prompt: PromptProfile) => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      promptProfiles: [duplicatePromptProfile(prompt), ...workspace.promptProfiles],
+    }));
+  };
+
+  const removePrompt = (id: string) => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      promptProfiles: workspace.promptProfiles.filter((prompt) => prompt.id !== id),
+    }));
+  };
+
   return (
     <Panel
+      action={
+        <button className={secondaryButtonClass} onClick={addPrompt} type="button">
+          <Plus size={16} />
+          Add prompt
+        </button>
+      }
       icon={Robot}
-      subtitle="Reusable prompts for future provider comparison, cover letters, and review flows."
+      subtitle="Create prompt profiles and inspect the exact context that would be sent later."
       title="Prompt Profiles"
     >
       <div className="grid gap-4">
         {prompts.map((prompt) => (
-          <Item key={prompt.id} kicker={prompt.purpose} title={prompt.name}>
+          <Item
+            action={
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={compactButtonClass}
+                  onClick={() => duplicatePrompt(prompt)}
+                  type="button"
+                >
+                  <Copy size={14} />
+                  Duplicate
+                </button>
+                <button
+                  className={compactDangerButtonClass}
+                  onClick={() => removePrompt(prompt.id)}
+                  type="button"
+                >
+                  <Trash size={14} />
+                  Remove
+                </button>
+              </div>
+            }
+            key={prompt.id}
+            kicker={prompt.purpose}
+            title={prompt.name}
+          >
             <TextInput
               label="Profile name"
               onChange={(name) => updatePrompt(prompt.id, { name })}
@@ -628,6 +891,30 @@ function PromptsPanel({
               }
               value={prompt.userPromptTemplate}
             />
+            <TextInput
+              label="Tags"
+              onChange={(tags) =>
+                updatePrompt(prompt.id, { tags: commaTextToList(tags) })
+              }
+              value={prompt.tags.join(", ")}
+            />
+            {previewJob ? (
+              <label className="grid min-w-0 gap-2 text-sm">
+                <span className="font-medium text-zinc-700">
+                  Prompt preview using first tracked job
+                </span>
+                <textarea
+                  className={`${textareaClass} min-h-52 font-mono text-xs leading-5`}
+                  readOnly
+                  value={renderPromptPreview({
+                    promptProfile: prompt,
+                    job: previewJob,
+                    resumeText:
+                      "Approved resume context is assembled from the v1 draft before a provider call.",
+                  }).userPrompt}
+                />
+              </label>
+            ) : null}
           </Item>
         ))}
       </div>
@@ -644,6 +931,18 @@ function ModelsPanel({
     updater: (workspace: V2WorkspaceState) => V2WorkspaceState,
   ) => void;
 }) {
+  const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set());
+
+  const addModel = () => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      localModelEndpoints: [
+        createLocalModelEndpoint(),
+        ...workspace.localModelEndpoints,
+      ],
+    }));
+  };
+
   const updateModel = (id: string, patch: Partial<LocalModelEndpoint>) => {
     updateWorkspace((workspace) => ({
       ...workspace,
@@ -653,26 +952,92 @@ function ModelsPanel({
     }));
   };
 
+  const removeModel = (id: string) => {
+    updateWorkspace((workspace) => ({
+      ...workspace,
+      localModelEndpoints: workspace.localModelEndpoints.filter(
+        (model) => model.id !== id,
+      ),
+    }));
+  };
+
+  const checkModel = async (model: LocalModelEndpoint) => {
+    setCheckingIds((current) => new Set(current).add(model.id));
+    updateModel(model.id, { readiness: "checking", failureMessage: null });
+
+    const result = await checkLocalModelEndpoint(model);
+
+    updateModel(model.id, {
+      readiness: result.readiness,
+      lastCheckedAt: result.checkedAt,
+      failureMessage: result.failureMessage,
+    });
+    setCheckingIds((current) => {
+      const next = new Set(current);
+      next.delete(model.id);
+      return next;
+    });
+  };
+
   return (
     <Panel
+      action={
+        <button className={secondaryButtonClass} onClick={addModel} type="button">
+          <Plus size={16} />
+          Add endpoint
+        </button>
+      }
       icon={Cpu}
-      subtitle="Local model endpoint metadata only; no inference calls in this pass."
-      title="Local Model Foundations"
+      subtitle="Register local model servers and check whether their model-list endpoint responds."
+      title="Local Models"
     >
       <div className="grid gap-4">
         {models.map((model) => (
-          <Item key={model.id} kicker={model.providerKind} title={model.label}>
+          <Item
+            action={
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={compactButtonClass}
+                  disabled={checkingIds.has(model.id)}
+                  onClick={() => void checkModel(model)}
+                  type="button"
+                >
+                  <CheckCircle size={14} />
+                  {checkingIds.has(model.id) ? "Checking" : "Check"}
+                </button>
+                <button
+                  className={compactDangerButtonClass}
+                  onClick={() => removeModel(model.id)}
+                  type="button"
+                >
+                  <Trash size={14} />
+                  Remove
+                </button>
+              </div>
+            }
+            key={model.id}
+            kicker={model.providerKind}
+            title={model.label}
+          >
             <div className="grid gap-4 lg:grid-cols-3">
               <TextInput
                 label="Label"
                 onChange={(label) => updateModel(model.id, { label })}
                 value={model.label}
               />
+              <SelectInput
+                label="Provider"
+                onChange={(providerKind) => updateModel(model.id, { providerKind })}
+                options={localModelProviderKinds}
+                value={model.providerKind}
+              />
               <TextInput
                 label="Base URL"
                 onChange={(baseUrl) => updateModel(model.id, { baseUrl })}
                 value={model.baseUrl}
               />
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
               <SelectInput
                 label="Readiness"
                 onChange={(readiness) => updateModel(model.id, { readiness })}
@@ -685,6 +1050,11 @@ function ModelsPanel({
               onChange={(modelName) => updateModel(model.id, { model: modelName })}
               value={model.model}
             />
+            {model.failureMessage ? (
+              <InlineNotice tone="error" title="Endpoint check failed">
+                {model.failureMessage}
+              </InlineNotice>
+            ) : null}
           </Item>
         ))}
       </div>
@@ -806,11 +1176,13 @@ function SyncPanel({
 }
 
 function Panel({
+  action,
   children,
   icon: IconComponent,
   subtitle,
   title,
 }: {
+  action?: ReactNode;
   children: ReactNode;
   icon: Icon;
   subtitle: string;
@@ -818,18 +1190,21 @@ function Panel({
 }) {
   return (
     <section className="rounded-md border border-zinc-200 bg-white">
-      <div className="flex min-w-0 gap-3 border-b border-zinc-200 p-4 sm:p-5">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-700">
-          <IconComponent size={21} />
+      <div className="flex flex-col gap-4 border-b border-zinc-200 p-4 sm:p-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-700">
+            <IconComponent size={21} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold tracking-tight text-zinc-950">
+              {title}
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-600">
+              {subtitle}
+            </p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold tracking-tight text-zinc-950">
-            {title}
-          </h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-600">
-            {subtitle}
-          </p>
-        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       <div className="grid gap-4 p-4 sm:p-5">{children}</div>
     </section>
@@ -837,23 +1212,28 @@ function Panel({
 }
 
 function Item({
+  action,
   children,
   kicker,
   title,
 }: {
+  action?: ReactNode;
   children: ReactNode;
   kicker: string;
   title: string;
 }) {
   return (
     <article className="rounded-md border border-zinc-200 bg-white">
-      <div className="border-b border-zinc-200 bg-zinc-50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
-          {formatLabel(kicker)}
-        </p>
-        <h3 className="mt-1 truncate text-base font-semibold text-zinc-950">
-          {title}
-        </h3>
+      <div className="flex flex-col gap-3 border-b border-zinc-200 bg-zinc-50 p-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            {formatLabel(kicker)}
+          </p>
+          <h3 className="mt-1 truncate text-base font-semibold text-zinc-950">
+            {title}
+          </h3>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       <div className="grid gap-4 p-4">{children}</div>
     </article>
@@ -1023,6 +1403,13 @@ function LoadingPanel() {
 function commaTextToList(value: string) {
   return value
     .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function lineTextToList(value: string) {
+  return value
+    .split(/\r?\n/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
