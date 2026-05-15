@@ -6,3 +6,11 @@ release/
 .env
 .env.*
 !.env.example
+
+# Local AI/agent workflow artifacts
+.planning/
+.agents/
+.codex/
+.claude/
+AGENTS.md
+CLAUDE.md
