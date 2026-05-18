@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Flask, Vault, type Icon } from "@phosphor-icons/react";
+import { Briefcase, Database, FileText, type Icon } from "@phosphor-icons/react";
 import { ProfileVaultWorkspace } from "./components/ProfileVaultWorkspace";
+import { ResumeStudioWorkspace } from "./components/ResumeStudioWorkspace";
 import { V2Workspace } from "./components/V2Workspace";
 
-type WorkspaceMode = "profile" | "v2";
+type WorkspaceMode = "studio" | "profile" | "library";
 
 type WorkspaceModeOption = {
   id: WorkspaceMode;
@@ -14,16 +15,22 @@ type WorkspaceModeOption = {
 
 const workspaceModeOptions: WorkspaceModeOption[] = [
   {
-    id: "profile",
-    label: "Profile Vault",
-    description: "Canonical career facts",
-    icon: Vault,
+    id: "studio",
+    label: "Studio",
+    description: "Tailor and export",
+    icon: Briefcase,
   },
   {
-    id: "v2",
-    label: "V2 Lab",
-    description: "Templates, jobs, prompts",
-    icon: Flask,
+    id: "profile",
+    label: "Profile",
+    description: "Career facts",
+    icon: Database,
+  },
+  {
+    id: "library",
+    label: "Library",
+    description: "Jobs and models",
+    icon: FileText,
   },
 ];
 
@@ -31,12 +38,14 @@ const workspaceModeStorageKey = "resumelab.workspace.mode";
 
 const getInitialWorkspaceMode = (): WorkspaceMode => {
   if (typeof window === "undefined") {
-    return "profile";
+    return "studio";
   }
 
   const storedMode = window.localStorage.getItem(workspaceModeStorageKey);
 
-  return storedMode === "v2" ? "v2" : "profile";
+  return storedMode === "profile" || storedMode === "library"
+    ? storedMode
+    : "studio";
 };
 
 export default function App() {
@@ -57,13 +66,13 @@ export default function App() {
               ResumeLab
             </p>
             <p className="truncate text-xs text-zinc-500">
-              Local-first resume workspace
+              Local-first tailoring workspace
             </p>
           </div>
 
           <div
             aria-label="Workspace mode"
-            className="grid gap-1 rounded-md border border-zinc-200 bg-zinc-100 p-1 sm:grid-cols-2"
+            className="grid gap-1 rounded-md border border-zinc-200 bg-zinc-100 p-1 sm:grid-cols-3"
             role="tablist"
           >
             {workspaceModeOptions.map((option) => {
@@ -102,7 +111,16 @@ export default function App() {
         </div>
       </header>
 
-      {workspaceMode === "profile" ? <ProfileVaultWorkspace /> : <V2Workspace />}
+      {workspaceMode === "studio" ? (
+        <ResumeStudioWorkspace
+          onOpenLibrary={() => setWorkspaceMode("library")}
+          onOpenProfile={() => setWorkspaceMode("profile")}
+        />
+      ) : workspaceMode === "profile" ? (
+        <ProfileVaultWorkspace />
+      ) : (
+        <V2Workspace />
+      )}
     </div>
   );
 }
