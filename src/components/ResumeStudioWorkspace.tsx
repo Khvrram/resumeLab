@@ -413,17 +413,30 @@ export function ResumeStudioWorkspace({
             ) : null}
           </section>
 
-          <section className="grid gap-5 2xl:grid-cols-[0.9fr_1.1fr]">
+          <section className="grid gap-5">
             <div className="rounded-lg border border-zinc-200 bg-white">
-              <div className="border-b border-zinc-200 p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
-                  Profile core
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-tight">
-                  Approved source facts
-                </h2>
+              <div className="grid gap-4 border-b border-zinc-200 p-4 lg:grid-cols-[1fr_auto] lg:items-start">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
+                    Profile core
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold tracking-tight">
+                    Approved source facts
+                  </h2>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <SignalMetric
+                    label="Matched"
+                    value={draft.match.matchedTools.length}
+                  />
+                  <SignalMetric
+                    label="Missing"
+                    value={draft.match.missingKeywords.length}
+                  />
+                  <SignalMetric label="Sections" value={draft.sections.length} />
+                </div>
               </div>
-              <div className="grid gap-4 p-4">
+              <div className="grid gap-4 p-4 xl:grid-cols-4">
                 <TextInput
                   label="Name"
                   onChange={(fullName) =>
@@ -444,32 +457,30 @@ export function ResumeStudioWorkspace({
                   }
                   value={profile.basics.headline}
                 />
-                <div className="grid gap-4 md:grid-cols-2">
-                  <TextInput
-                    label="Location"
-                    onChange={(location) =>
-                      updateProfile((current) => ({
-                        ...current,
-                        basics: { ...current.basics, location },
-                      }))
-                    }
-                    value={profile.basics.location}
-                  />
-                  <TextInput
-                    label="Email"
-                    onChange={(email) =>
-                      updateProfile((current) => ({
-                        ...current,
-                        basics: { ...current.basics, email },
-                      }))
-                    }
-                    value={profile.basics.email}
-                  />
-                </div>
-                <label className="grid gap-2 text-sm">
+                <TextInput
+                  label="Location"
+                  onChange={(location) =>
+                    updateProfile((current) => ({
+                      ...current,
+                      basics: { ...current.basics, location },
+                    }))
+                  }
+                  value={profile.basics.location}
+                />
+                <TextInput
+                  label="Email"
+                  onChange={(email) =>
+                    updateProfile((current) => ({
+                      ...current,
+                      basics: { ...current.basics, email },
+                    }))
+                  }
+                  value={profile.basics.email}
+                />
+                <label className="grid gap-2 text-sm xl:col-span-2">
                   <span className="font-medium text-zinc-700">Summary</span>
                   <textarea
-                    className={textareaClass}
+                    className={`${textareaClass} min-h-24`}
                     onChange={(event) =>
                       updateProfile((current) => ({
                         ...current,
@@ -482,39 +493,13 @@ export function ResumeStudioWorkspace({
                     value={profile.basics.summary}
                   />
                 </label>
-                <SkillsEditor profile={profile} updateProfile={updateProfile} />
+                <div className="xl:col-span-2">
+                  <SkillsEditor profile={profile} updateProfile={updateProfile} />
+                </div>
               </div>
             </div>
 
-            <div className="rounded-lg border border-zinc-200 bg-white">
-              <div className="grid gap-4 border-b border-zinc-200 p-4 lg:grid-cols-[1fr_auto] lg:items-start">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
-                    Resume editor
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold tracking-tight">
-                    KhurramsResume live preview
-                  </h2>
-                </div>
-              </div>
-              <div className="grid gap-4 p-4">
-                <div className="grid gap-3 md:grid-cols-3">
-                  <SignalMetric
-                    label="Matched tools"
-                    value={draft.match.matchedTools.length}
-                  />
-                  <SignalMetric
-                    label="Missing terms"
-                    value={draft.match.missingKeywords.length}
-                  />
-                  <SignalMetric
-                    label="Sections"
-                    value={draft.sections.length}
-                  />
-                </div>
-                <LiveResumeEditor draft={draft} profile={profile} />
-              </div>
-            </div>
+            <LiveResumeEditor draft={draft} profile={profile} />
           </section>
         </section>
 
