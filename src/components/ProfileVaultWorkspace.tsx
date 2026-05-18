@@ -55,9 +55,9 @@ import {
   buildAiEgressPreview,
   buildResumeDraft,
   createResumeFileName,
-  renderResumeLatex,
   renderResumePlainText,
 } from "../domain/resumeDraft";
+import { renderKhurramsResumeLatex } from "../domain/khurramsResumeTemplate";
 
 type SectionId =
   | "basics"
@@ -619,7 +619,7 @@ function ResumeDraftSection({ profile }: { profile: ResumeProfile }) {
     [jobDescription, profile],
   );
   const plainText = useMemo(() => renderResumePlainText(draft), [draft]);
-  const latex = useMemo(() => renderResumeLatex(draft), [draft]);
+  const latex = useMemo(() => renderKhurramsResumeLatex(draft), [draft]);
   const egressPreview = useMemo(
     () => buildAiEgressPreview(profile, jobDescription),
     [jobDescription, profile],

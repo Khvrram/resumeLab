@@ -1,0 +1,282 @@
+%-------------------------
+% Resume in Latex
+% Author : Jake Gutierrez
+% Based off of: https://github.com/sb2nov/resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{fontawesome5}
+\usepackage{multicol}
+\setlength{\multicolsep}{-3.0pt}
+\setlength{\columnsep}{-1pt}
+\input{glyphtounicode}
+
+
+%----------FONT OPTIONS----------
+% sans-serif
+% \usepackage[sfdefault]{FiraSans}
+% \usepackage[sfdefault]{roboto}
+% \usepackage[sfdefault]{noto-sans}
+% \usepackage[default]{sourcesanspro}
+
+% serif
+% \usepackage{CormorantGaramond}
+% \usepackage{charter}
+
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.6in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1.19in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.8in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-12pt}\scshape\raggedright\large\bfseries
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% Ensure that generate pdf is machine readable/ATS parsable
+\pdfgentounicode=1
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1}
+  }
+}
+
+\newcommand{\classesList}[4]{
+    \item\small{
+        {#1 #2 #3 #4}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \item
+    \begin{tabular*}{1.0\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \small#1 & \textbf{\small #2} \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{1.0\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & \textbf{\small #2}\\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}}
+
+\renewcommand\labelitemi{$\vcenter{\hbox{\tiny$\bullet$}}$}
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+\setlist[itemize]{leftmargin=0.2in, labelwidth=0.1in, labelsep=0.05in, itemsep=0pt, parsep=0pt}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.0in, label={}, itemsep=0pt, parsep=0pt]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}\vspace{-8pt}}
+\newcommand{\resumeItemListStart}{\begin{itemize}[itemsep=0pt, parsep=0pt]}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+
+\begin{center}
+  {\Huge \scshape Khurram Valiyev} \\ \vspace{1pt}
+    \small
+    \raisebox{-0.2\height}{\faEnvelope}~\href{mailto:khurram@khvrram.dev}{khurram@khvrram.dev} ~
+    \raisebox{-0.2\height}{\faGlobe}~\href{https://khvrram.dev/}{khvrram.dev} ~
+    \raisebox{-0.2\height}{\faGithub}~\href{https://github.com/Khvrram}{GitHub} ~
+    \raisebox{-0.2\height}{\faLinkedin}~\href{https://www.linkedin.com/in/khurram-valiyev/}{linkedin.com/in/khurram-valiyev} ~
+    \vspace{-5pt}
+\end{center}
+\vspace{-1pt}
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Florida Institute of Technology}{January 2023 - May 2026}
+      {Bachelor of Science in Software Engineering}{Melbourne, Florida}
+  \resumeSubHeadingListEnd
+%-----------RESEARCH EXPERIENCE-----------
+\section{Research Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+    {\textbf{High Energy Physics Lab, Florida Institute of Technology} $|$ \emph{Python, ROOT, NumPy, Data Analysis}}{2025 - Present}
+    {Undergraduate Research Volunteer}{Melbourne, Florida}
+    \resumeItemListStart
+      \resumeItem{Optimized existing data processing codebase, reducing execution time from 6 hours to 5 minutes}
+      \resumeItem{Develop hit/cluster reconstruction algorithms and visualization tools to validate detector response and support ongoing experiments}
+      \resumeItem{Automate data analysis pipelines using summary metrics and plots to tune thresholds and streamline internal reporting}
+    \resumeItemListEnd
+  \resumeSubHeadingListEnd
+%-----------LEADERSHIP \& EXPERIENCE-----------
+\section{Leadership \& Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+    {\textbf{Student Developer Club, Florida Tech} $|$ \emph{Leadership, Community Building, Public Speaking}}{2025 - Present}
+    {Founder \& President}{Florida Institute of Technology}
+    \resumeItemListStart
+      \resumeItem{Founded and lead a student developer community focused on project-based learning, demos, and software skills}
+      \resumeItem{Organize peer code reviews, club projects, and project showcases across web, mobile, and AI/IoT builds}
+      \resumeItem{Mentor students on shipping MVPs, debugging workflows, and bridging coursework with real-world engineering}
+    \resumeItemListEnd
+
+    \resumeSubheading
+    {\textbf{World Scholar's Cup @ Yale} $|$ \emph{Coaching, Mentoring}}{2025}
+    {Coach \& Delegation Supervisor}{Yale University, Connecticut}
+    \resumeItemListStart
+      \resumeItem{Coached a student delegation at the Tournament of Champions (ToC) at Yale University, leading the team to secure 20+ awards across multiple academic events}
+      \resumeItem{Mentored students through competitive debates and challenges, providing technical guidance and strategic feedback to help teams reach the final rounds}
+      \resumeItem{Represented the student delegation in a high-level meeting with the Embassy of Azerbaijan to the United States during the Yale Global Cultural Fair}
+    \resumeItemListEnd
+
+    \resumeSubheading
+    {\textbf{MATLAB Club, Florida Tech} $|$ \emph{Teaching, Mentoring}}{2023 - 2024}
+    {Vice President}{Florida Institute of Technology}
+    \resumeItemListStart
+      \resumeItem{Helped build and grow a MATLAB-focused community with over 50 members; taught fundamentals through hands-on labs and guided practice}
+      \resumeItem{Supported student learning through tutoring sessions emphasizing clarity, repeatable problem-solving, and strong fundamentals}
+    \resumeItemListEnd
+
+    \resumeSubheading
+    {\textbf{Arduino Tutor \& Olympiad Supervisor} $|$ \emph{Arduino, Embedded Systems, Sensors}}{2021 - 2022}
+    {Tunisia I FEST}{Baku, Azerbaijan}
+    \resumeItemListStart
+      \resumeItem{Tutored 10+ students across 3 teams in embedded systems, Arduino programming, and sensor integration}
+      \resumeItem{Supervised teams through the International Festival of Engineering and Technology; achieved multiple podium finishes including 2nd place (2x) and 3rd place awards}
+    \resumeItemListEnd
+  \resumeSubHeadingListEnd
+%-----------PROJECTS-----------
+\section{Projects}
+    \resumeSubHeadingListStart
+      \resumeProjectHeading
+        {\textbf{Sator} $|$ \emph{ESP32, Arduino, Python}}{2025}
+        \resumeItemListStart
+          \resumeItem{Mobile agricultural rover that moves through fields collecting soil moisture, NPK levels, temperature, humidity, and air quality data with live camera feed}
+          \resumeItem{Integrated a multi-sensor array (NPK, soil moisture, air quality, light) and integrated an ESP32-CAM for live environmental monitoring into the rover}
+          \resumeItem{Set up real-time data pipeline from ESP32 sensors to backend server; integrated an AI chatbot using Gemini API that answers questions about sensor readings}
+        \resumeItemListEnd
+      \resumeProjectHeading
+        {\textbf{Garden Guardian} $|$ \emph{ESP32, Python, Arduino}}{2025}
+        \resumeItemListStart
+          \resumeItem{IoT system that monitors plant health using soil moisture, air quality, and light sensors, then sends data to the website to suggest care actions and monitor the plant}
+          \resumeItem{Determined optimal sensor thresholds through testing on a real plant and developed a robust data pipeline for real-time web-based care suggestions}
+        \resumeItemListEnd
+\newpage
+      \resumeProjectHeading
+        {\textbf{Receding Coastlines} $|$ \emph{Python, HTML/CSS, JavaScript, Data Science}}{2025}
+        \resumeItemListStart
+          \resumeItem{Interactive web tool that models and visualizes how sea-level rise affects coastlines; users can adjust scenarios with sliders to see different outcomes}
+          \resumeItem{Designed for non-technical audiences to understand climate risks; shows past coastlines and predicted future coastlines based on a machine learning model trained on past data}
+          \resumeItem{Conducted data analysis to find where outliers are located and see how they affected our data set}
+
+        \resumeItemListEnd
+
+      \resumeProjectHeading
+        {\textbf{Desk Display} $|$ \emph{ESP32, Python, REST APIs, Sensors}}{2025}
+        \resumeItemListStart
+          \resumeItem{Small desk device powered by USB-C that shows weather, room temperature, humidity, and currently playing Spotify track on a small screen}
+          \resumeItem{Integrates real-time weather and Spotify REST APIs, utilizing an interrupt-driven button interface to toggle display modes}
+        \resumeItemListEnd
+      \resumeProjectHeading
+        {\textbf{TrafficLight++} $|$ \emph{Python, YOLO, Arduino, Solar Power}}{2024}
+        \resumeItemListStart
+          \resumeItem{Add-on device for traffic lights that uses computer vision to spot accidents and adjust signal timing to reduce congestion}
+          \resumeItem{Worked with 2-person team on hardware design; added solar charging and remote control features for maintenance}
+        \resumeItemListEnd
+      \resumeProjectHeading
+        {\textbf{CallBulance} $|$ \emph{Arduino, Flex Sensors, GSM Module, Wireless Communication}}{2019 - 2022}
+        \resumeItemListStart
+          \resumeItem{Vehicle crash detector that uses flex sensors to detect impact and automatically dials emergency services with location}
+          \resumeItem{Managed a team of five engineers over three years, leading the project from initial prototype to a fully functional MVP}
+        \resumeItemListEnd
+      \resumeProjectHeading
+        {\textbf{SafeWave} $|$ \emph{Arduino, Sensors, Prototyping}}{2019}
+        \resumeItemListStart
+          \resumeItem{Built a wearable device for offshore oil rig workers and people at the beach that detect falls into water and unsafe diving depths, then produces an alert sound via a buzzer}
+          \resumeItem{Built in an MVP in under 6 months and iterated based on feedback from friends and mentors}
+        \resumeItemListEnd
+
+\resumeSubHeadingListEnd
+%--------HONORS \& AWARDS-------
+\section{Honors \& Awards}
+        \begin{multicols}{2}
+            \begin{itemize}[itemsep=0pt, parsep=0pt]
+              \item \textbf{2nd Place} - MakeCU Hackathon @ Columbia University (2025)
+              \item \textbf{20+ Awards} - World Scholar's Cup TOC @ Yale (2025)
+              \item \textbf{2nd Place (2x) \& 3rd Place} - Tunisia I-FEST (2022)
+              \item \textbf{1st Place} - BUCA International Music Science Energy Engineering Fair (2021)
+              \item \textbf{Top 10 Project} - London International Youth Science Forum (2021)
+              \item \textbf{4th Place} - KSEF (Korea Science and Engineering Fair International) (2019)
+              \item \textbf{1st Place} - ABC Science Fair (Azerbaijan) (2019)
+              \item \textbf{3rd Place} - CASTIC (China Adolescents Science \& Technology Innovation Contest) (2019)
+            \end{itemize}
+        \end{multicols}
+%-----------RESEARCH INTERESTS-----------
+\section{Research Interests}
+  \resumeItemListStart
+    \resumeItem{Dedicated to developing intelligent, data-driven, embedded systems that bridge the gap between physical devices and digital insights to solve real-world challenges.}
+    \resumeItem{\textbf{Areas}{: Real-time Data Processing \& Analysis, Internet of Things, Autonomous Sensing Systems, Wearable Technology, Human-in-the-Loop Safety Systems}}
+  \resumeItemListEnd
+%-----------TECHNICAL SKILLS-----------
+\section{Technical Skills}
+  \resumeItemListStart
+    \resumeItem{\textbf{Languages}{: Arduino, Java, Kotlin, Python, C, C++, JavaScript, MATLAB, HTML/CSS}}
+    \resumeItem{\textbf{Technologies/Frameworks}{: Arduino, ESP32, Raspberry Pi, AWS, React, NumPy, Matplotlib, Pandas, Sensors, Embedded Systems}}
+    \resumeItem{\textbf{Tools \& Methods}{: GitHub, Figma, Soldering, Circuit Design, PCB Design, 3D Printing \& Designing, Project Management, Team Leadership, Mentoring}}
+  \resumeItemListEnd
+%-----------HACKATHONS \& COMPETITIONS---------------
+\section{Hackathons \& Competitions}
+        \begin{multicols}{2}
+            \begin{itemize}[itemsep=0pt, parsep=0pt]
+              \item MakeCU @ Columbia University - New York, NY (2025)
+              \item KnightHacks VIII @ University of Central Florida - Orlando, FL (2025)
+              \item ShellHacks 2025 @ Florida International University - Miami, FL (2025)
+              \item Tunisia I-FEST (International Festival of Engineering and Technology) - Tunisia (2022)
+              \item ESA (Expo Sciences Asia) - UAE (2022)
+              \item BUCA International Music Science Energy Engineering Fair - Turkey (Remote) (2021)
+              \item London International Youth Science Forum - London, UK (Remote) (2021)
+              \item KSEF (Korea Science and Engineering Fair International) - South Korea (2019)
+              \item ABC Science Fair - Azerbaijan (2019)
+              \item CASTIC (China Adolescents Science \& Technology Innovation Contest) - China (2019)
+            \end{itemize}
+        \end{multicols}
+
+\end{document}

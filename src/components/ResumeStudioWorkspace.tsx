@@ -15,8 +15,6 @@ import {
 import {
   buildAiEgressPreview,
   buildResumeDraft,
-  createResumeFileName,
-  renderResumeLatex,
   renderResumePlainText,
 } from "../domain/resumeDraft";
 import {
@@ -34,6 +32,7 @@ import {
   loadProfileFromRepository,
   saveProfileToRepository,
 } from "./profileRepositoryAdapter";
+import { LiveResumeEditor } from "./LiveResumeEditor";
 import { createSampleV2Workspace } from "../domain/v2";
 import type { JobApplication, V2WorkspaceState } from "../domain/v2";
 
@@ -140,7 +139,6 @@ export function ResumeStudioWorkspace({
     () => (draft ? renderResumePlainText(draft) : ""),
     [draft],
   );
-  const latex = useMemo(() => (draft ? renderResumeLatex(draft) : ""), [draft]);
   const egressPreview = useMemo(
     () =>
       profile
@@ -234,26 +232,6 @@ export function ResumeStudioWorkspace({
       setSaveState("error");
       setErrorMessage(formatError(error));
     }
-  };
-
-  const exportText = () => {
-    if (!profile) {
-      return;
-    }
-
-    downloadTextFile(createResumeFileName(profile, "txt"), plainText, "text/plain");
-  };
-
-  const exportLatex = () => {
-    if (!profile) {
-      return;
-    }
-
-    downloadTextFile(
-      createResumeFileName(profile, "tex"),
-      latex,
-      "application/x-tex",
-    );
   };
 
   const markDirty = () => {
@@ -512,29 +490,11 @@ export function ResumeStudioWorkspace({
               <div className="grid gap-4 border-b border-zinc-200 p-4 lg:grid-cols-[1fr_auto] lg:items-start">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
-                    Generated draft
+                    Resume editor
                   </p>
                   <h2 className="mt-2 text-xl font-semibold tracking-tight">
-                    {matchScore}/100 local match
+                    KhurramsResume live preview
                   </h2>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className={secondaryButtonClass}
-                    onClick={exportText}
-                    type="button"
-                  >
-                    <DownloadSimple size={17} />
-                    TXT
-                  </button>
-                  <button
-                    className={secondaryButtonClass}
-                    onClick={exportLatex}
-                    type="button"
-                  >
-                    <DownloadSimple size={17} />
-                    LaTeX
-                  </button>
                 </div>
               </div>
               <div className="grid gap-4 p-4">
@@ -552,14 +512,7 @@ export function ResumeStudioWorkspace({
                     value={draft.sections.length}
                   />
                 </div>
-                <label className="grid gap-2 text-sm">
-                  <span className="font-medium text-zinc-700">Resume text</span>
-                  <textarea
-                    className={`${textareaClass} min-h-[30rem] font-mono text-xs leading-5`}
-                    readOnly
-                    value={plainText}
-                  />
-                </label>
+                <LiveResumeEditor draft={draft} profile={profile} />
               </div>
             </div>
           </section>
@@ -764,16 +717,6 @@ function StudioLoadingState() {
       </div>
     </main>
   );
-}
-
-function downloadTextFile(fileName: string, contents: string, type: string) {
-  const blob = new Blob([contents], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.click();
-  URL.revokeObjectURL(url);
 }
 
 function formatError(error: unknown) {

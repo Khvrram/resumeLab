@@ -7,6 +7,13 @@ release/
 .env.*
 !.env.example
 
+# Local template working copies and LaTeX build outputs
+/KhurramsResume/
+*.aux
+*.log
+*.out
+*.pdf
+
 # Local AI/agent workflow artifacts
 .planning/
 .agents/
