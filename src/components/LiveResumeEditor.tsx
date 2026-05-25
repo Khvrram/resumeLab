@@ -19,6 +19,10 @@ import {
   type ResumePreviewDocument,
   type ResumePreviewSection,
 } from "../domain/khurramsResumeTemplate";
+import {
+  createResumeDocxBytes,
+  createResumePdfBytes,
+} from "../domain/resumeExports";
 import { createResumeFileName, type ResumeDraft } from "../domain/resumeDraft";
 import {
   type ResumeDocument,
@@ -107,6 +111,7 @@ export function LiveResumeEditor({
     preview.sections,
   );
   const pages = [firstPageSections, secondPageSections];
+  const exportPages = pages.filter((sections) => sections.length > 0);
   const activePageSections = pages[activePageIndex] ?? [];
   const activeSource =
     document.mode === "latex" ? document.latexContent : document.textContent;
@@ -133,6 +138,22 @@ export function LiveResumeEditor({
       createResumeFileName(profile, "tex"),
       document.latexContent,
       "application/x-tex",
+    );
+  };
+
+  const exportPdf = () => {
+    downloadBinaryFile(
+      createResumeFileName(profile, "pdf"),
+      createResumePdfBytes(preview, exportPages),
+      "application/pdf",
+    );
+  };
+
+  const exportDocx = () => {
+    downloadBinaryFile(
+      createResumeFileName(profile, "docx"),
+      createResumeDocxBytes(preview, exportPages),
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     );
   };
 
@@ -229,6 +250,22 @@ export function LiveResumeEditor({
               <FloppyDisk size={16} />
             )}
             Save
+          </button>
+          <button
+            className={secondaryButtonClass}
+            onClick={exportPdf}
+            type="button"
+          >
+            <DownloadSimple size={16} />
+            PDF
+          </button>
+          <button
+            className={secondaryButtonClass}
+            onClick={exportDocx}
+            type="button"
+          >
+            <DownloadSimple size={16} />
+            DOCX
           </button>
           <button className={secondaryButtonClass} onClick={exportText} type="button">
             <DownloadSimple size={16} />
@@ -494,6 +531,21 @@ function ResumePage({
 
 function downloadTextFile(fileName: string, contents: string, type: string) {
   const blob = new Blob([contents], { type });
+  downloadBlob(fileName, blob);
+}
+
+function downloadBinaryFile(
+  fileName: string,
+  contents: Uint8Array,
+  type: string,
+) {
+  const buffer = new ArrayBuffer(contents.byteLength);
+  new Uint8Array(buffer).set(contents);
+  const blob = new Blob([buffer], { type });
+  downloadBlob(fileName, blob);
+}
+
+function downloadBlob(fileName: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

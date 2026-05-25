@@ -163,7 +163,7 @@ export function buildAiEgressPreview(
 
 export function createResumeFileName(
   profile: ResumeProfile,
-  extension: "txt" | "tex",
+  extension: "docx" | "pdf" | "tex" | "txt",
 ): string {
   const baseName = (profile.basics.fullName || "resume")
     .toLowerCase()
