@@ -2,6 +2,7 @@ import {
   isResumeDocumentArray,
   type ResumeDocument,
 } from "../domain/resumeDocuments";
+import { getDefaultJsonStorage, type JsonStorage } from "./jsonStorage";
 
 export const RESUME_DOCUMENTS_STORAGE_KEY = "resumelab.resume.documents.v1";
 
@@ -15,13 +16,13 @@ export interface ResumeDocumentRepository {
 }
 
 export function createResumeDocumentRepository(
-  storage: Storage = getDefaultStorage(),
+  storage: JsonStorage = getDefaultJsonStorage(),
 ): ResumeDocumentRepository {
   async function load(): Promise<ResumeDocument[]> {
-    const storedDocuments = storage.getItem(RESUME_DOCUMENTS_STORAGE_KEY);
+    const storedDocuments = await storage.getItem(RESUME_DOCUMENTS_STORAGE_KEY);
 
     if (storedDocuments === null) {
-      storage.setItem(RESUME_DOCUMENTS_STORAGE_KEY, serializeDocuments([]));
+      await storage.setItem(RESUME_DOCUMENTS_STORAGE_KEY, serializeDocuments([]));
       return [];
     }
 
@@ -29,7 +30,10 @@ export function createResumeDocumentRepository(
   }
 
   async function save(documents: ResumeDocument[]): Promise<void> {
-    storage.setItem(RESUME_DOCUMENTS_STORAGE_KEY, serializeDocuments(documents));
+    await storage.setItem(
+      RESUME_DOCUMENTS_STORAGE_KEY,
+      serializeDocuments(documents),
+    );
   }
 
   async function upsert(document: ResumeDocument): Promise<ResumeDocument[]> {
@@ -52,7 +56,7 @@ export function createResumeDocumentRepository(
   }
 
   async function reset(): Promise<ResumeDocument[]> {
-    storage.removeItem(RESUME_DOCUMENTS_STORAGE_KEY);
+    await storage.removeItem(RESUME_DOCUMENTS_STORAGE_KEY);
     return load();
   }
 
@@ -69,16 +73,6 @@ export function createResumeDocumentRepository(
     save,
     upsert,
   };
-}
-
-function getDefaultStorage(): Storage {
-  if (typeof globalThis.localStorage === "undefined") {
-    throw new Error(
-      "No Storage implementation was provided and localStorage is unavailable.",
-    );
-  }
-
-  return globalThis.localStorage;
 }
 
 function serializeDocuments(documents: ResumeDocument[]): string {

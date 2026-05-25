@@ -3,6 +3,7 @@ import {
   isResumeProfile,
   type ResumeProfile,
 } from "../domain/profile";
+import { getDefaultJsonStorage, type JsonStorage } from "./jsonStorage";
 
 export const PROFILE_STORAGE_KEY = "resumelab.profile.v1";
 
@@ -14,14 +15,14 @@ export interface ProfileRepository {
 }
 
 export function createProfileRepository(
-  storage: Storage = getDefaultStorage(),
+  storage: JsonStorage = getDefaultJsonStorage(),
 ): ProfileRepository {
   async function load(): Promise<ResumeProfile> {
-    const storedProfile = storage.getItem(PROFILE_STORAGE_KEY);
+    const storedProfile = await storage.getItem(PROFILE_STORAGE_KEY);
 
     if (storedProfile === null) {
       const seededProfile = createSampleProfile();
-      storage.setItem(PROFILE_STORAGE_KEY, serializeProfile(seededProfile));
+      await storage.setItem(PROFILE_STORAGE_KEY, serializeProfile(seededProfile));
       return cloneProfile(seededProfile);
     }
 
@@ -29,11 +30,11 @@ export function createProfileRepository(
   }
 
   async function save(profile: ResumeProfile): Promise<void> {
-    storage.setItem(PROFILE_STORAGE_KEY, serializeProfile(profile));
+    await storage.setItem(PROFILE_STORAGE_KEY, serializeProfile(profile));
   }
 
   async function reset(): Promise<ResumeProfile> {
-    storage.removeItem(PROFILE_STORAGE_KEY);
+    await storage.removeItem(PROFILE_STORAGE_KEY);
     return load();
   }
 
@@ -48,16 +49,6 @@ export function createProfileRepository(
     reset,
     exportJson,
   };
-}
-
-function getDefaultStorage(): Storage {
-  if (typeof globalThis.localStorage === "undefined") {
-    throw new Error(
-      "No Storage implementation was provided and localStorage is unavailable.",
-    );
-  }
-
-  return globalThis.localStorage;
 }
 
 function serializeProfile(profile: ResumeProfile): string {

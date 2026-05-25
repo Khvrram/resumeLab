@@ -1,7 +1,19 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("node:path");
+const { createDesktopJsonStore, validateKey } = require("./storage.cjs");
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
+let jsonStore = null;
+
+function getJsonStore() {
+  if (!jsonStore) {
+    jsonStore = createDesktopJsonStore(
+      path.join(app.getPath("userData"), "resumelab.sqlite3"),
+    );
+  }
+
+  return jsonStore;
+}
 
 function createMainWindow() {
   const window = new BrowserWindow({
@@ -39,9 +51,21 @@ function createMainWindow() {
 ipcMain.handle("app:get-runtime", () => ({
   isPackaged: app.isPackaged,
   platform: process.platform,
-  storageMode: "renderer-localStorage-phase1",
+  storageMode: "electron-sqlite",
   version: app.getVersion(),
 }));
+
+ipcMain.handle("storage:get", (_event, key) => getJsonStore().getItem(key));
+
+ipcMain.handle("storage:set", (_event, key, value) => {
+  getJsonStore().setItem(validateKey(key), value);
+});
+
+ipcMain.handle("storage:remove", (_event, key) => {
+  getJsonStore().removeItem(validateKey(key));
+});
+
+ipcMain.handle("storage:export-all", () => getJsonStore().exportAll());
 
 app.whenReady().then(() => {
   createMainWindow();
@@ -57,4 +81,9 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+app.on("before-quit", () => {
+  jsonStore?.close();
+  jsonStore = null;
 });

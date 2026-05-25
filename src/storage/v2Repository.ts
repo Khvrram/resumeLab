@@ -3,6 +3,7 @@ import {
   isV2WorkspaceState,
   type V2WorkspaceState,
 } from "../domain/v2";
+import { getDefaultJsonStorage, type JsonStorage } from "./jsonStorage";
 
 export const V2_STORAGE_KEY = "resumelab.workspace.v2";
 
@@ -14,14 +15,17 @@ export interface V2Repository {
 }
 
 export function createV2Repository(
-  storage: Storage = getDefaultStorage(),
+  storage: JsonStorage = getDefaultJsonStorage(),
 ): V2Repository {
   async function load(): Promise<V2WorkspaceState> {
-    const storedWorkspace = storage.getItem(V2_STORAGE_KEY);
+    const storedWorkspace = await storage.getItem(V2_STORAGE_KEY);
 
     if (storedWorkspace === null) {
       const seededWorkspace = createSampleV2Workspace();
-      storage.setItem(V2_STORAGE_KEY, serializeWorkspace(seededWorkspace));
+      await storage.setItem(
+        V2_STORAGE_KEY,
+        serializeWorkspace(seededWorkspace),
+      );
       return cloneWorkspace(seededWorkspace);
     }
 
@@ -29,11 +33,11 @@ export function createV2Repository(
   }
 
   async function save(state: V2WorkspaceState): Promise<void> {
-    storage.setItem(V2_STORAGE_KEY, serializeWorkspace(state));
+    await storage.setItem(V2_STORAGE_KEY, serializeWorkspace(state));
   }
 
   async function reset(): Promise<V2WorkspaceState> {
-    storage.removeItem(V2_STORAGE_KEY);
+    await storage.removeItem(V2_STORAGE_KEY);
     return load();
   }
 
@@ -48,16 +52,6 @@ export function createV2Repository(
     reset,
     exportJson,
   };
-}
-
-function getDefaultStorage(): Storage {
-  if (typeof globalThis.localStorage === "undefined") {
-    throw new Error(
-      "No Storage implementation was provided and localStorage is unavailable.",
-    );
-  }
-
-  return globalThis.localStorage;
 }
 
 function serializeWorkspace(state: V2WorkspaceState): string {
