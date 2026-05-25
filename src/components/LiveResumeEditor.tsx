@@ -40,6 +40,8 @@ type LiveResumeEditorProps = {
   saveState: "idle" | "saving" | "saved" | "error";
 };
 
+type EditorPane = "source" | "preview";
+
 const modeOptions: Array<{
   id: ResumeDocumentMode;
   label: string;
@@ -58,13 +60,16 @@ const modeOptions: Array<{
 ];
 
 const secondaryButtonClass =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 text-sm font-medium text-white transition hover:bg-white/15 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 text-sm font-medium text-white transition hover:bg-white/10 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45";
 
 const darkButtonClass =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 text-sm font-medium text-white transition hover:bg-white/15 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 text-sm font-medium text-white transition hover:bg-white/10 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45";
 
 const lightButtonClass =
   "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+
+const saveButtonClass =
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-white px-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 active:translate-y-px disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500";
 
 export function LiveResumeEditor({
   document,
@@ -81,6 +86,7 @@ export function LiveResumeEditor({
   const generatedText = useMemo(() => renderKhurramsResumeText(draft), [draft]);
   const generatedLatex = useMemo(() => renderKhurramsResumeLatex(draft), [draft]);
   const [activePageIndex, setActivePageIndex] = useState(0);
+  const [activePane, setActivePane] = useState<EditorPane>("source");
   const [selectedRevisionId, setSelectedRevisionId] = useState(
     document.revisions[0]?.id ?? "",
   );
@@ -106,8 +112,8 @@ export function LiveResumeEditor({
     document.mode === "latex" ? document.latexContent : document.textContent;
   const editorClass =
     document.mode === "latex"
-      ? "min-h-[30rem] w-full resize-y rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-xs leading-5 text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 lg:min-h-[calc(100dvh-22rem)]"
-      : "min-h-[30rem] w-full resize-y rounded-lg border border-zinc-300 bg-white px-4 py-3 font-mono text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200 lg:min-h-[calc(100dvh-22rem)]";
+      ? "min-h-[32rem] w-full resize-none bg-[#111114] px-4 py-4 font-mono text-xs leading-5 text-zinc-100 outline-none placeholder:text-zinc-500 xl:min-h-[calc(100dvh-20.5rem)]"
+      : "min-h-[32rem] w-full resize-none bg-[#fbfaf7] px-4 py-4 font-mono text-sm leading-6 text-zinc-950 outline-none placeholder:text-zinc-400 xl:min-h-[calc(100dvh-20.5rem)]";
   const selectedRevision = document.revisions.find(
     (revision) => revision.id === selectedRevisionId,
   );
@@ -139,22 +145,22 @@ export function LiveResumeEditor({
   };
 
   return (
-    <section className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950 shadow-[0_34px_90px_-50px_rgba(0,0,0,0.95)]">
-      <div className="grid gap-4 border-b border-white/10 bg-zinc-900/90 p-3 lg:grid-cols-[1fr_auto] lg:items-center">
+    <section className="overflow-hidden rounded-lg border border-white/10 bg-[#111114] shadow-[0_34px_90px_-55px_rgba(0,0,0,0.95)]">
+      <div className="grid gap-3 border-b border-white/10 bg-[#18181b] px-3 py-3 xl:grid-cols-[1fr_auto] xl:items-center">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
             KhurramsResume
           </p>
-          <h3 className="mt-1 text-xl font-semibold tracking-tight text-white">
-            Source and preview
+          <h3 className="mt-1 text-xl font-semibold text-white">
+            Live editor
           </h3>
           <p className="mt-1 text-xs text-zinc-500">
-            {isDirty ? "Unsaved draft edits" : "Saved draft"} ·{" "}
+            {isDirty ? "Unsaved draft edits" : "Saved draft"} /{" "}
             {isGeneratedTextCurrent ? "Generated from current facts" : "Manual edits active"}
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 xl:justify-end">
           <div
             aria-label="Editor mode"
             className="grid grid-cols-2 gap-1 rounded-md border border-white/10 bg-zinc-950 p-1"
@@ -183,6 +189,22 @@ export function LiveResumeEditor({
               );
             })}
           </div>
+          <div
+            aria-label="Editor pane"
+            className="grid grid-cols-2 gap-1 rounded-md border border-white/10 bg-zinc-950 p-1 xl:hidden"
+            role="tablist"
+          >
+            <PaneButton
+              isActive={activePane === "source"}
+              label="Source"
+              onClick={() => setActivePane("source")}
+            />
+            <PaneButton
+              isActive={activePane === "preview"}
+              label="Preview"
+              onClick={() => setActivePane("preview")}
+            />
+          </div>
           <button
             className={secondaryButtonClass}
             onClick={onRefreshFromFacts}
@@ -196,7 +218,7 @@ export function LiveResumeEditor({
             Checkpoint
           </button>
           <button
-            className={secondaryButtonClass}
+            className={saveButtonClass}
             disabled={!isDirty || saveState === "saving"}
             onClick={onSave}
             type="button"
@@ -223,9 +245,13 @@ export function LiveResumeEditor({
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-0 lg:min-h-[calc(100dvh-14.5rem)] xl:grid-cols-[minmax(25rem,0.84fr)_minmax(42rem,1.16fr)]">
-        <div className="grid min-w-0 content-start gap-3 border-b border-zinc-200 bg-[#f8f8f5] p-4 xl:border-b-0 xl:border-r">
-          <div className="flex items-center justify-between gap-3">
+      <div className="grid min-w-0 xl:min-h-[calc(100dvh-15.75rem)] xl:grid-cols-[minmax(25rem,0.9fr)_minmax(42rem,1.1fr)]">
+        <section
+          className={`min-w-0 border-b border-white/10 bg-[#fbfaf7] text-zinc-950 xl:grid xl:grid-rows-[auto_minmax(0,1fr)_auto] xl:border-b-0 xl:border-r xl:border-white/10 ${
+            activePane === "source" ? "grid" : "hidden xl:grid"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-zinc-900">
                 {document.mode === "latex" ? "LaTeX source" : "Text source"}
@@ -246,7 +272,7 @@ export function LiveResumeEditor({
             value={activeSource}
           />
 
-          <div className="grid gap-2 rounded-lg border border-zinc-200 bg-white p-3">
+          <div className="grid gap-3 border-t border-zinc-200 bg-white px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-zinc-900">
@@ -275,20 +301,24 @@ export function LiveResumeEditor({
             >
               {document.revisions.map((revision) => (
                 <option key={revision.id} value={revision.id}>
-                  {revision.label} · {formatRevisionDate(revision.createdAt)}
+                  {revision.label} / {formatRevisionDate(revision.createdAt)}
                 </option>
               ))}
             </select>
           </div>
-        </div>
+        </section>
 
-        <div className="min-w-0 bg-zinc-950 p-4 text-white">
-          <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+        <section
+          className={`min-w-0 bg-[#0c0c0e] text-white xl:grid xl:grid-rows-[auto_minmax(0,1fr)] ${
+            activePane === "preview" ? "grid" : "hidden xl:grid"
+          }`}
+        >
+          <div className="grid gap-3 border-b border-white/10 px-4 py-3 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="flex items-center gap-2">
               <FileText size={18} />
               <div>
                 <p className="text-sm font-semibold">Current resume</p>
-                <p className="text-xs text-zinc-400">Letter page preview</p>
+                <p className="text-xs text-zinc-400">Letter preview</p>
               </div>
             </div>
 
@@ -334,16 +364,42 @@ export function LiveResumeEditor({
             </div>
           </div>
 
-          <div className="max-h-[74rem] overflow-auto rounded-lg bg-zinc-900/70 p-3 ring-1 ring-white/10 lg:max-h-[calc(100dvh-19rem)]">
+          <div className="min-h-[34rem] overflow-auto bg-[#101012] p-3 sm:p-5 xl:max-h-[calc(100dvh-20.5rem)]">
             <ResumePage
               document={preview}
               pageNumber={activePageIndex + 1}
               sections={activePageSections}
             />
           </div>
-        </div>
+        </section>
       </div>
     </section>
+  );
+}
+
+function PaneButton({
+  isActive,
+  label,
+  onClick,
+}: {
+  isActive: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-selected={isActive}
+      className={`inline-flex h-8 min-w-20 items-center justify-center rounded-md px-2.5 text-xs font-medium transition active:translate-y-px ${
+        isActive
+          ? "bg-white text-zinc-950 shadow-sm"
+          : "text-zinc-400 hover:bg-white/10 hover:text-white"
+      }`}
+      onClick={onClick}
+      role="tab"
+      type="button"
+    >
+      {label}
+    </button>
   );
 }
 

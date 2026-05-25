@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowClockwise,
   ClockCounterClockwise,
-  FileText,
   Gauge,
   Palette,
   WarningCircle,
@@ -288,50 +287,53 @@ export function ResumeEditorWorkspace({
   const isStale = activeDocument.sourceProfileUpdatedAt !== profile.updatedAt;
 
   return (
-    <main className="min-h-[calc(100dvh-73px)] bg-zinc-950 text-white">
-      <div className="mx-auto grid max-w-[1720px] gap-4 px-4 py-4 sm:px-6">
-        <section className="grid gap-3 rounded-xl border border-white/10 bg-zinc-900/80 p-3 shadow-[0_24px_60px_-42px_rgba(0,0,0,0.9)] lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[1.4fr_0.85fr_1fr_0.9fr]">
-            <EditorSignal
-              icon={FileText}
-              label="Draft"
-              value={activeDocument.title}
-            />
-            <EditorSignal
-              icon={Gauge}
-              label="Coverage"
-              value={formatCoverage(draft.match.score)}
-            />
-            <EditorSignal
-              icon={Palette}
-              label="Template"
-              value="KhurramsResume"
-            />
-            <EditorSignal
-              icon={ClockCounterClockwise}
-              label="Revisions"
-              value={formatRevisionCount(activeDocument.revisions.length)}
-            />
+    <main className="min-h-[calc(100dvh-65px)] bg-[#0d0d0f] text-white">
+      <div className="mx-auto grid max-w-[1720px] gap-3 px-3 py-3 sm:px-5">
+        <section className="grid gap-4 rounded-lg border border-white/10 bg-[#161619] px-4 py-3 shadow-[0_22px_70px_-48px_rgba(0,0,0,0.95)] lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-end">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-zinc-300">
+                KhurramsResume
+              </span>
+              <span
+                className={`rounded-md border px-2.5 py-1 text-xs font-medium ${
+                  isDocumentDirty
+                    ? "border-amber-300/25 bg-amber-200/10 text-amber-100"
+                    : "border-emerald-300/20 bg-emerald-200/10 text-emerald-100"
+                }`}
+              >
+                {isDocumentDirty ? "Unsaved edits" : "Saved locally"}
+              </span>
+            </div>
+            <h1 className="mt-3 max-w-5xl text-2xl font-semibold leading-tight text-white sm:text-3xl">
+              {activeDocument.title}
+            </h1>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-400">
+              <EditorFact icon={Gauge} value={formatCoverage(draft.match.score)} />
+              <EditorFact icon={Palette} value="ATS template" />
+              <EditorFact
+                icon={ClockCounterClockwise}
+                value={formatRevisionCount(activeDocument.revisions.length)}
+              />
+            </div>
           </div>
 
-          <div className="grid gap-2 sm:min-w-[23rem]">
-            <label className="grid gap-1 text-sm">
-              <span className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-400">
-                Target
-              </span>
-              <select
-                className={toolbarSelectClass}
-                onChange={(event) => void selectJob(event.target.value)}
-                value={activeJob?.id ?? ""}
-              >
-                {workspace.jobApplications.map((job) => (
-                  <option key={job.id} value={job.id}>
-                    {formatJobLabel(job)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <label className="grid gap-1.5 text-sm">
+            <span className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
+              Target job
+            </span>
+            <select
+              className={toolbarSelectClass}
+              onChange={(event) => void selectJob(event.target.value)}
+              value={activeJob?.id ?? ""}
+            >
+              {workspace.jobApplications.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {formatJobLabel(job)}
+                </option>
+              ))}
+            </select>
+          </label>
         </section>
 
         {isStale ? (
@@ -380,27 +382,18 @@ export function ResumeEditorWorkspace({
   );
 }
 
-function EditorSignal({
+function EditorFact({
   icon: IconComponent,
-  label,
   value,
 }: {
   icon: Icon;
-  label: string;
   value: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-white/10 text-zinc-200">
-        <IconComponent size={18} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
-          {label}
-        </p>
-        <p className="truncate text-sm font-semibold text-white">{value}</p>
-      </div>
-    </div>
+    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1.5">
+      <IconComponent className="shrink-0 text-zinc-500" size={15} />
+      <span className="truncate">{value}</span>
+    </span>
   );
 }
 
@@ -435,10 +428,10 @@ function Notice({
 
 function EditorLoadingState() {
   return (
-    <main className="min-h-[calc(100dvh-73px)] bg-zinc-950 p-4 sm:p-6">
+    <main className="min-h-[calc(100dvh-65px)] bg-[#0d0d0f] p-4 sm:p-6">
       <div className="mx-auto grid max-w-[1720px] gap-4">
-        <div className="h-20 animate-pulse rounded-xl bg-white/10" />
-        <div className="h-[calc(100dvh-12rem)] min-h-[42rem] animate-pulse rounded-xl bg-white/10" />
+        <div className="h-24 animate-pulse rounded-lg bg-white/10" />
+        <div className="h-[calc(100dvh-12rem)] min-h-[42rem] animate-pulse rounded-lg bg-white/10" />
       </div>
     </main>
   );

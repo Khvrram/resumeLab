@@ -96,22 +96,48 @@ export default function App() {
     }
   }, [selectedJobId]);
 
+  const isEditorMode = workspaceMode === "editor";
+
   return (
-    <div className="min-h-[100dvh] bg-zinc-100 text-zinc-950">
-      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div
+      className={`min-h-[100dvh] text-zinc-950 ${
+        isEditorMode ? "bg-zinc-950" : "bg-zinc-100"
+      }`}
+    >
+      <header
+        className={`sticky top-0 z-50 border-b backdrop-blur ${
+          isEditorMode
+            ? "border-white/10 bg-zinc-950/95 text-white"
+            : "border-zinc-200 bg-white/95"
+        }`}
+      >
+        <div className="mx-auto flex max-w-[1720px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-zinc-950">
+            <p
+              className={`truncate text-sm font-semibold ${
+                isEditorMode ? "text-white" : "text-zinc-950"
+              }`}
+            >
               ResumeLab
             </p>
-            <p className="truncate text-xs text-zinc-500">
-              Local-first tailoring workspace
+            <p
+              className={`truncate text-xs ${
+                isEditorMode ? "text-zinc-400" : "text-zinc-500"
+              }`}
+            >
+              {isEditorMode
+                ? "Dedicated resume editor"
+                : "Local-first tailoring workspace"}
             </p>
           </div>
 
           <div
             aria-label="Workspace mode"
-            className="grid grid-cols-2 gap-1 rounded-md border border-zinc-200 bg-zinc-100 p-1 sm:grid-cols-4"
+            className={`grid grid-cols-4 gap-1 rounded-md border p-1 ${
+              isEditorMode
+                ? "border-white/10 bg-white/5"
+                : "border-zinc-200 bg-zinc-100"
+            }`}
             role="tablist"
           >
             {workspaceModeOptions.map((option) => {
@@ -121,10 +147,12 @@ export default function App() {
               return (
                 <button
                   aria-selected={isActive}
-                  className={`flex min-h-11 min-w-0 items-center gap-2 rounded-md px-3 text-left transition active:translate-y-px sm:min-w-36 ${
+                  className={`flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-md px-2 text-left transition active:translate-y-px sm:justify-start sm:px-3 md:min-w-36 ${
                     isActive
                       ? "bg-white text-zinc-950 shadow-sm"
-                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+                      : isEditorMode
+                        ? "text-zinc-400 hover:bg-white/10 hover:text-white"
+                        : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
                   }`}
                   key={option.id}
                   onClick={() => setWorkspaceMode(option.id)}
@@ -136,10 +164,18 @@ export default function App() {
                     weight={isActive ? "fill" : "regular"}
                   />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">
+                    <span className="block truncate text-xs font-medium sm:text-sm">
                       {option.label}
                     </span>
-                    <span className="block truncate text-xs text-zinc-500">
+                    <span
+                      className={`hidden truncate text-xs sm:block ${
+                        isActive
+                          ? "text-zinc-500"
+                          : isEditorMode
+                            ? "text-zinc-500"
+                            : "text-zinc-500"
+                      }`}
+                    >
                       {option.description}
                     </span>
                   </span>
