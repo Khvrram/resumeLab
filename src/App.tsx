@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Briefcase,
   Database,
@@ -41,13 +41,14 @@ const workspaceModeOptions: WorkspaceModeOption[] = [
   },
   {
     id: "library",
-    label: "Library",
-    description: "Jobs and models",
+    label: "Jobs",
+    description: "Targets and templates",
     icon: FileText,
   },
 ];
 
 const workspaceModeStorageKey = "resumelab.workspace.mode";
+const selectedJobStorageKey = "resumelab.workspace.selectedJobId";
 
 const getInitialWorkspaceMode = (): WorkspaceMode => {
   if (typeof window === "undefined") {
@@ -63,14 +64,37 @@ const getInitialWorkspaceMode = (): WorkspaceMode => {
     : "studio";
 };
 
+const getInitialSelectedJobId = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage.getItem(selectedJobStorageKey);
+};
+
 export default function App() {
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(
     getInitialWorkspaceMode,
   );
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(
+    getInitialSelectedJobId,
+  );
+
+  const handleSelectJob = useCallback((jobId: string | null) => {
+    setSelectedJobId(jobId);
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(workspaceModeStorageKey, workspaceMode);
   }, [workspaceMode]);
+
+  useEffect(() => {
+    if (selectedJobId) {
+      window.localStorage.setItem(selectedJobStorageKey, selectedJobId);
+    } else {
+      window.localStorage.removeItem(selectedJobStorageKey);
+    }
+  }, [selectedJobId]);
 
   return (
     <div className="min-h-[100dvh] bg-zinc-100 text-zinc-950">
@@ -131,9 +155,14 @@ export default function App() {
           onOpenEditor={() => setWorkspaceMode("editor")}
           onOpenLibrary={() => setWorkspaceMode("library")}
           onOpenProfile={() => setWorkspaceMode("profile")}
+          onSelectJob={handleSelectJob}
+          selectedJobId={selectedJobId}
         />
       ) : workspaceMode === "editor" ? (
-        <ResumeEditorWorkspace />
+        <ResumeEditorWorkspace
+          onSelectJob={handleSelectJob}
+          selectedJobId={selectedJobId}
+        />
       ) : workspaceMode === "profile" ? (
         <ProfileVaultWorkspace />
       ) : (

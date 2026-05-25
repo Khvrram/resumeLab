@@ -3,9 +3,11 @@ import {
   ArrowClockwise,
   CaretLeft,
   CaretRight,
+  ClockCounterClockwise,
   Code,
   DownloadSimple,
   FileText,
+  FloppyDisk,
   TextT,
 } from "@phosphor-icons/react";
 import {
@@ -18,19 +20,28 @@ import {
   type ResumePreviewSection,
 } from "../domain/khurramsResumeTemplate";
 import { createResumeFileName, type ResumeDraft } from "../domain/resumeDraft";
+import {
+  type ResumeDocument,
+  type ResumeDocumentContentPatch,
+  type ResumeDocumentMode,
+} from "../domain/resumeDocuments";
 import type { ResumeProfile } from "./profileTypes";
 
-type EditorMode = "text" | "latex";
-
 type LiveResumeEditorProps = {
+  document: ResumeDocument;
   draft: ResumeDraft;
+  isDirty: boolean;
+  onChange: (patch: ResumeDocumentContentPatch) => void;
+  onCheckpoint: () => void;
+  onRefreshFromFacts: () => void;
+  onRestoreRevision: (revisionId: string) => void;
+  onSave: () => void;
   profile: ResumeProfile;
+  saveState: "idle" | "saving" | "saved" | "error";
 };
 
-const editorStorageKey = "resumelab.khurramsresume.editor.v1";
-
 const modeOptions: Array<{
-  id: EditorMode;
+  id: ResumeDocumentMode;
   label: string;
   icon: typeof TextT;
 }> = [
@@ -52,79 +63,61 @@ const secondaryButtonClass =
 const darkButtonClass =
   "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 text-sm font-medium text-white transition hover:bg-white/15 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45";
 
-export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
+const lightButtonClass =
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+
+export function LiveResumeEditor({
+  document,
+  draft,
+  isDirty,
+  onChange,
+  onCheckpoint,
+  onRefreshFromFacts,
+  onRestoreRevision,
+  onSave,
+  profile,
+  saveState,
+}: LiveResumeEditorProps) {
   const generatedText = useMemo(() => renderKhurramsResumeText(draft), [draft]);
   const generatedLatex = useMemo(() => renderKhurramsResumeLatex(draft), [draft]);
-  const [mode, setMode] = useState<EditorMode>("text");
-  const [textBuffer, setTextBuffer] = useState(generatedText);
-  const [latexBuffer, setLatexBuffer] = useState(generatedLatex);
   const [activePageIndex, setActivePageIndex] = useState(0);
-  const [hasLoadedStoredEditor, setHasLoadedStoredEditor] = useState(false);
+  const [selectedRevisionId, setSelectedRevisionId] = useState(
+    document.revisions[0]?.id ?? "",
+  );
 
   useEffect(() => {
-    const storedEditor = window.localStorage.getItem(editorStorageKey);
-
-    if (storedEditor) {
-      try {
-        const parsedEditor: unknown = JSON.parse(storedEditor);
-
-        if (isStoredEditor(parsedEditor)) {
-          setMode(parsedEditor.mode);
-          setTextBuffer(parsedEditor.text);
-          setLatexBuffer(parsedEditor.latex);
-        }
-      } catch {
-        setTextBuffer(generatedText);
-        setLatexBuffer(generatedLatex);
-      }
-    }
-
-    setHasLoadedStoredEditor(true);
-  }, [generatedLatex, generatedText]);
-
-  useEffect(() => {
-    if (!hasLoadedStoredEditor) {
-      return;
-    }
-
-    window.localStorage.setItem(
-      editorStorageKey,
-      JSON.stringify({
-        mode,
-        text: textBuffer,
-        latex: latexBuffer,
-      }),
-    );
-  }, [hasLoadedStoredEditor, latexBuffer, mode, textBuffer]);
+    setActivePageIndex(0);
+    setSelectedRevisionId(document.revisions[0]?.id ?? "");
+  }, [document.id, document.revisions]);
 
   const preview = useMemo(
     () =>
-      mode === "latex"
-        ? parseResumePreviewFromLatex(latexBuffer)
-        : parseResumePreviewFromText(textBuffer),
-    [latexBuffer, mode, textBuffer],
+      document.mode === "latex"
+        ? parseResumePreviewFromLatex(document.latexContent)
+        : parseResumePreviewFromText(document.textContent),
+    [document.latexContent, document.mode, document.textContent],
   );
   const [firstPageSections, secondPageSections] = paginateResumeSections(
     preview.sections,
   );
   const pages = [firstPageSections, secondPageSections];
   const activePageSections = pages[activePageIndex] ?? [];
-  const activeSource = mode === "latex" ? latexBuffer : textBuffer;
+  const activeSource =
+    document.mode === "latex" ? document.latexContent : document.textContent;
   const editorClass =
-    mode === "latex"
-      ? "min-h-[34rem] w-full resize-y rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-xs leading-5 text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 lg:min-h-[calc(100dvh-19rem)]"
-      : "min-h-[34rem] w-full resize-y rounded-lg border border-zinc-300 bg-white px-4 py-3 font-mono text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200 lg:min-h-[calc(100dvh-19rem)]";
-
-  const resetFromFacts = () => {
-    setTextBuffer(generatedText);
-    setLatexBuffer(generatedLatex);
-    setActivePageIndex(0);
-  };
+    document.mode === "latex"
+      ? "min-h-[30rem] w-full resize-y rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-xs leading-5 text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 lg:min-h-[calc(100dvh-22rem)]"
+      : "min-h-[30rem] w-full resize-y rounded-lg border border-zinc-300 bg-white px-4 py-3 font-mono text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200 lg:min-h-[calc(100dvh-22rem)]";
+  const selectedRevision = document.revisions.find(
+    (revision) => revision.id === selectedRevisionId,
+  );
+  const isGeneratedTextCurrent =
+    document.textContent === generatedText && document.latexContent === generatedLatex;
 
   const exportText = () => {
     downloadTextFile(
       createResumeFileName(profile, "txt"),
-      textBuffer,
+      document.textContent,
       "text/plain",
     );
   };
@@ -132,7 +125,7 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
   const exportLatex = () => {
     downloadTextFile(
       createResumeFileName(profile, "tex"),
-      latexBuffer,
+      document.latexContent,
       "application/x-tex",
     );
   };
@@ -155,6 +148,10 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
           <h3 className="mt-1 text-xl font-semibold tracking-tight text-white">
             Source and preview
           </h3>
+          <p className="mt-1 text-xs text-zinc-500">
+            {isDirty ? "Unsaved draft edits" : "Saved draft"} ·{" "}
+            {isGeneratedTextCurrent ? "Generated from current facts" : "Manual edits active"}
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -165,7 +162,7 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
           >
             {modeOptions.map((option) => {
               const IconComponent = option.icon;
-              const isActive = option.id === mode;
+              const isActive = option.id === document.mode;
 
               return (
                 <button
@@ -176,7 +173,7 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
                       : "text-zinc-400 hover:bg-white/10 hover:text-white"
                   }`}
                   key={option.id}
-                  onClick={() => setMode(option.id)}
+                  onClick={() => onChange({ mode: option.id })}
                   role="tab"
                   type="button"
                 >
@@ -188,11 +185,28 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
           </div>
           <button
             className={secondaryButtonClass}
-            onClick={resetFromFacts}
+            onClick={onRefreshFromFacts}
             type="button"
           >
             <ArrowClockwise size={16} />
-            Reset
+            Regenerate
+          </button>
+          <button className={secondaryButtonClass} onClick={onCheckpoint} type="button">
+            <ClockCounterClockwise size={16} />
+            Checkpoint
+          </button>
+          <button
+            className={secondaryButtonClass}
+            disabled={!isDirty || saveState === "saving"}
+            onClick={onSave}
+            type="button"
+          >
+            {saveState === "saving" ? (
+              <ArrowClockwise className="animate-spin" size={16} />
+            ) : (
+              <FloppyDisk size={16} />
+            )}
+            Save
           </button>
           <button className={secondaryButtonClass} onClick={exportText} type="button">
             <DownloadSimple size={16} />
@@ -214,7 +228,7 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-zinc-900">
-                {mode === "latex" ? "LaTeX source" : "Text source"}
+                {document.mode === "latex" ? "LaTeX source" : "Text source"}
               </p>
             </div>
             <span className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 font-mono text-xs text-zinc-500">
@@ -224,13 +238,48 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
           <textarea
             className={editorClass}
             onChange={(event) =>
-              mode === "latex"
-                ? setLatexBuffer(event.target.value)
-                : setTextBuffer(event.target.value)
+              document.mode === "latex"
+                ? onChange({ latexContent: event.target.value })
+                : onChange({ textContent: event.target.value })
             }
-            spellCheck={mode === "text"}
+            spellCheck={document.mode === "text"}
             value={activeSource}
           />
+
+          <div className="grid gap-2 rounded-lg border border-zinc-200 bg-white p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-zinc-900">
+                  Revision history
+                </p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  {formatRevisionCount(document.revisions.length)} for this draft.
+                </p>
+              </div>
+              <button
+                className={lightButtonClass}
+                disabled={!selectedRevision}
+                onClick={() =>
+                  selectedRevision && onRestoreRevision(selectedRevision.id)
+                }
+                type="button"
+              >
+                Restore
+              </button>
+            </div>
+            <select
+              className="h-10 min-w-0 rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200"
+              disabled={document.revisions.length === 0}
+              onChange={(event) => setSelectedRevisionId(event.target.value)}
+              value={selectedRevisionId}
+            >
+              {document.revisions.map((revision) => (
+                <option key={revision.id} value={revision.id}>
+                  {revision.label} · {formatRevisionDate(revision.createdAt)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="min-w-0 bg-zinc-950 p-4 text-white">
@@ -387,21 +436,6 @@ function ResumePage({
   );
 }
 
-function isStoredEditor(
-  value: unknown,
-): value is { mode: EditorMode; text: string; latex: string } {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const record = value as Record<string, unknown>;
-  return (
-    (record.mode === "text" || record.mode === "latex") &&
-    typeof record.text === "string" &&
-    typeof record.latex === "string"
-  );
-}
-
 function downloadTextFile(fileName: string, contents: string, type: string) {
   const blob = new Blob([contents], { type });
   const url = URL.createObjectURL(blob);
@@ -410,4 +444,23 @@ function downloadTextFile(fileName: string, contents: string, type: string) {
   anchor.download = fileName;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function formatRevisionDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "unknown time";
+  }
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatRevisionCount(count: number) {
+  return `${count} saved ${count === 1 ? "checkpoint" : "checkpoints"}`;
 }

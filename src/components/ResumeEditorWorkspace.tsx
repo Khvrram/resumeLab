@@ -1,12 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowClockwise,
+  ClockCounterClockwise,
   FileText,
   Gauge,
   Palette,
   WarningCircle,
+  type Icon,
 } from "@phosphor-icons/react";
 import { buildResumeDraft } from "../domain/resumeDraft";
+import {
+  createResumeDocument,
+  createResumeRevision,
+  findDocumentForJob,
+  refreshResumeDocumentFromDraft,
+  restoreResumeRevision,
+  updateResumeDocumentContent,
+  type ResumeDocument,
+  type ResumeDocumentContentPatch,
+} from "../domain/resumeDocuments";
 import { createSampleV2Workspace } from "../domain/v2";
+import { createResumeDocumentRepository } from "../storage/resumeDocumentRepository";
 import { createV2Repository } from "../storage/v2Repository";
 import { LiveResumeEditor } from "./LiveResumeEditor";
 import {
@@ -16,17 +30,33 @@ import {
 import { loadProfileFromRepository } from "./profileRepositoryAdapter";
 import type { JobApplication, V2WorkspaceState } from "../domain/v2";
 
+type EditorSaveState = "idle" | "saving" | "saved" | "error";
+
+type ResumeEditorWorkspaceProps = {
+  onSelectJob: (jobId: string | null) => void;
+  selectedJobId: string | null;
+};
+
+const documentRepository = createResumeDocumentRepository();
 const v2Repository = createV2Repository();
 
 const toolbarSelectClass =
   "h-10 min-w-0 rounded-md border border-white/15 bg-zinc-950 px-3 text-sm text-white outline-none transition focus:border-white/40 focus:ring-2 focus:ring-white/10";
 
-export function ResumeEditorWorkspace() {
+export function ResumeEditorWorkspace({
+  onSelectJob,
+  selectedJobId,
+}: ResumeEditorWorkspaceProps) {
   const [profile, setProfile] = useState<ResumeProfile | null>(null);
   const [workspace, setWorkspace] = useState<V2WorkspaceState | null>(null);
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [documents, setDocuments] = useState<ResumeDocument[]>([]);
+  const [activeJobId, setActiveJobId] = useState<string | null>(selectedJobId);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDocumentDirty, setIsDocumentDirty] = useState(false);
+  const [saveState, setSaveState] = useState<EditorSaveState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const initialSelectedJobId = useRef(selectedJobId);
 
   useEffect(() => {
     let isMounted = true;
@@ -36,27 +66,64 @@ export function ResumeEditorWorkspace() {
       setErrorMessage(null);
 
       try {
-        const [loadedProfile, loadedWorkspace] = await Promise.all([
-          loadProfileFromRepository(),
-          v2Repository.load(),
-        ]);
+        const [loadedProfile, loadedWorkspace, loadedDocuments] =
+          await Promise.all([
+            loadProfileFromRepository(),
+            v2Repository.load(),
+            documentRepository.load(),
+          ]);
 
         if (!isMounted) {
           return;
         }
 
-        setProfile(loadedProfile ?? createSampleProfile());
+        const nextProfile = loadedProfile ?? createSampleProfile();
+        const nextActiveJobId = resolveActiveJobId(
+          loadedWorkspace,
+          initialSelectedJobId.current,
+        );
+        const ensuredDocuments = await ensureDocumentForJob({
+          documents: loadedDocuments,
+          jobId: nextActiveJobId,
+          profile: nextProfile,
+          workspace: loadedWorkspace,
+        });
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProfile(nextProfile);
         setWorkspace(loadedWorkspace);
-        setActiveJobId(loadedWorkspace.jobApplications[0]?.id ?? null);
+        setDocuments(ensuredDocuments);
+        setActiveJobId(nextActiveJobId);
+        onSelectJob(nextActiveJobId);
       } catch (error) {
         if (!isMounted) {
           return;
         }
 
+        const fallbackProfile = createSampleProfile();
         const fallbackWorkspace = createSampleV2Workspace();
-        setProfile(createSampleProfile());
+        const fallbackActiveJobId =
+          fallbackWorkspace.jobApplications[0]?.id ?? null;
+        const fallbackDocuments = await ensureDocumentForJob({
+          documents: [],
+          jobId: fallbackActiveJobId,
+          persist: false,
+          profile: fallbackProfile,
+          workspace: fallbackWorkspace,
+        });
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProfile(fallbackProfile);
         setWorkspace(fallbackWorkspace);
-        setActiveJobId(fallbackWorkspace.jobApplications[0]?.id ?? null);
+        setDocuments(fallbackDocuments);
+        setActiveJobId(fallbackActiveJobId);
+        onSelectJob(fallbackActiveJobId);
         setErrorMessage(formatError(error));
       } finally {
         if (isMounted) {
@@ -70,7 +137,7 @@ export function ResumeEditorWorkspace() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [onSelectJob]);
 
   const activeJob = useMemo(() => {
     if (!workspace) {
@@ -84,6 +151,11 @@ export function ResumeEditorWorkspace() {
     );
   }, [activeJobId, workspace]);
 
+  const activeDocument = useMemo(
+    () => findDocumentForJob(documents, activeJob?.id ?? null),
+    [activeJob?.id, documents],
+  );
+
   const draft = useMemo(() => {
     if (!profile) {
       return null;
@@ -94,29 +166,151 @@ export function ResumeEditorWorkspace() {
     });
   }, [activeJob?.jobDescription, profile]);
 
-  if (isLoading || !profile || !workspace || !draft) {
+  const updateActiveDocument = (patch: ResumeDocumentContentPatch) => {
+    if (!activeDocument) {
+      return;
+    }
+
+    const nextDocument = updateResumeDocumentContent(activeDocument, patch);
+    replaceDocument(nextDocument);
+    setIsDocumentDirty(true);
+    setSaveState("idle");
+    setNotice(null);
+  };
+
+  const saveActiveDocument = async () => {
+    if (!activeDocument) {
+      return;
+    }
+
+    await persistDocument(activeDocument, "Saved resume draft locally.");
+    setIsDocumentDirty(false);
+  };
+
+  const checkpointActiveDocument = async () => {
+    if (!activeDocument) {
+      return;
+    }
+
+    const checkpointedDocument = createResumeRevision(
+      activeDocument,
+      "Manual checkpoint",
+    );
+
+    replaceDocument(checkpointedDocument);
+    await persistDocument(checkpointedDocument, "Saved a draft checkpoint.");
+    setIsDocumentDirty(false);
+  };
+
+  const refreshActiveDocument = () => {
+    if (!activeDocument || !draft || !profile) {
+      return;
+    }
+
+    const refreshedDocument = refreshResumeDocumentFromDraft(
+      activeDocument,
+      draft,
+      profile,
+    );
+
+    replaceDocument(refreshedDocument);
+    setIsDocumentDirty(true);
+    setSaveState("idle");
+    setNotice("Regenerated this draft from current profile and target facts.");
+  };
+
+  const restoreRevision = (revisionId: string) => {
+    if (!activeDocument) {
+      return;
+    }
+
+    const restoredDocument = restoreResumeRevision(activeDocument, revisionId);
+
+    replaceDocument(restoredDocument);
+    setIsDocumentDirty(true);
+    setSaveState("idle");
+    setNotice("Restored revision into the editor. Save to keep it.");
+  };
+
+  const selectJob = async (jobId: string) => {
+    if (!workspace || !profile) {
+      return;
+    }
+
+    if (isDocumentDirty) {
+      await saveActiveDocument();
+    }
+
+    const ensuredDocuments = await ensureDocumentForJob({
+      documents,
+      jobId,
+      profile,
+      workspace,
+    });
+
+    setDocuments(ensuredDocuments);
+    setActiveJobId(jobId);
+    onSelectJob(jobId);
+    setIsDocumentDirty(false);
+    setSaveState("idle");
+    setNotice("Opened the draft for the selected target.");
+  };
+
+  const replaceDocument = (nextDocument: ResumeDocument) => {
+    setDocuments((currentDocuments) =>
+      currentDocuments.some((document) => document.id === nextDocument.id)
+        ? currentDocuments.map((document) =>
+            document.id === nextDocument.id ? nextDocument : document,
+          )
+        : [nextDocument, ...currentDocuments],
+    );
+  };
+
+  const persistDocument = async (document: ResumeDocument, message: string) => {
+    setSaveState("saving");
+    setErrorMessage(null);
+
+    try {
+      const savedDocuments = await documentRepository.upsert(document);
+      setDocuments(savedDocuments);
+      setSaveState("saved");
+      setNotice(message);
+    } catch (error) {
+      setSaveState("error");
+      setErrorMessage(formatError(error));
+    }
+  };
+
+  if (isLoading || !profile || !workspace || !draft || !activeDocument) {
     return <EditorLoadingState />;
   }
+
+  const isStale = activeDocument.sourceProfileUpdatedAt !== profile.updatedAt;
 
   return (
     <main className="min-h-[calc(100dvh-73px)] bg-zinc-950 text-white">
       <div className="mx-auto grid max-w-[1720px] gap-4 px-4 py-4 sm:px-6">
         <section className="grid gap-3 rounded-xl border border-white/10 bg-zinc-900/80 p-3 shadow-[0_24px_60px_-42px_rgba(0,0,0,0.9)] lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="grid min-w-0 gap-3 sm:grid-cols-3">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[1.4fr_0.85fr_1fr_0.9fr]">
             <EditorSignal
               icon={FileText}
+              label="Draft"
+              value={activeDocument.title}
+            />
+            <EditorSignal
+              icon={Gauge}
+              label="Coverage"
+              value={formatCoverage(draft.match.score)}
+            />
+            <EditorSignal
+              icon={Palette}
               label="Template"
               value="KhurramsResume"
             />
             <EditorSignal
-              icon={Gauge}
-              label="Local match"
-              value={`${draft.match.score}/100`}
-            />
-            <EditorSignal
-              icon={Palette}
-              label="Pages"
-              value="2-page CV"
+              icon={ClockCounterClockwise}
+              label="Revisions"
+              value={formatRevisionCount(activeDocument.revisions.length)}
             />
           </div>
 
@@ -127,7 +321,7 @@ export function ResumeEditorWorkspace() {
               </span>
               <select
                 className={toolbarSelectClass}
-                onChange={(event) => setActiveJobId(event.target.value)}
+                onChange={(event) => void selectJob(event.target.value)}
                 value={activeJob?.id ?? ""}
               >
                 {workspace.jobApplications.map((job) => (
@@ -140,20 +334,47 @@ export function ResumeEditorWorkspace() {
           </div>
         </section>
 
-        {errorMessage ? (
+        {isStale ? (
           <div
             className="flex gap-3 rounded-lg border border-amber-300/30 bg-amber-200/10 p-4 text-sm text-amber-100"
-            role="alert"
+            role="status"
           >
-            <WarningCircle className="shrink-0" size={19} />
-            <div>
-              <p className="font-semibold">Storage attention</p>
-              <p className="mt-1 leading-6">{errorMessage}</p>
+            <ArrowClockwise className="shrink-0" size={19} />
+            <div className="min-w-0">
+              <p className="font-semibold">Draft facts changed upstream</p>
+              <p className="mt-1 leading-6">
+                The saved document was generated from an older profile snapshot.
+                Use Regenerate to checkpoint this draft and rebuild it from current
+                facts.
+              </p>
             </div>
           </div>
         ) : null}
 
-        <LiveResumeEditor draft={draft} profile={profile} />
+        {errorMessage ? (
+          <Notice title="Storage attention" tone="error">
+            {errorMessage}
+          </Notice>
+        ) : null}
+
+        {notice && !errorMessage ? (
+          <Notice title="Draft status" tone="info">
+            {notice}
+          </Notice>
+        ) : null}
+
+        <LiveResumeEditor
+          document={activeDocument}
+          draft={draft}
+          isDirty={isDocumentDirty}
+          onChange={updateActiveDocument}
+          onCheckpoint={() => void checkpointActiveDocument()}
+          onRefreshFromFacts={refreshActiveDocument}
+          onRestoreRevision={restoreRevision}
+          onSave={() => void saveActiveDocument()}
+          profile={profile}
+          saveState={saveState}
+        />
       </div>
     </main>
   );
@@ -164,7 +385,7 @@ function EditorSignal({
   label,
   value,
 }: {
-  icon: typeof FileText;
+  icon: Icon;
   label: string;
   value: string;
 }) {
@@ -183,6 +404,35 @@ function EditorSignal({
   );
 }
 
+function Notice({
+  children,
+  title,
+  tone,
+}: {
+  children: string;
+  title: string;
+  tone: "error" | "info";
+}) {
+  const isError = tone === "error";
+
+  return (
+    <div
+      className={`flex gap-3 rounded-lg border p-4 text-sm ${
+        isError
+          ? "border-red-300/30 bg-red-200/10 text-red-100"
+          : "border-white/10 bg-white/[0.03] text-zinc-200"
+      }`}
+      role={isError ? "alert" : "status"}
+    >
+      <WarningCircle className="shrink-0" size={19} />
+      <div className="min-w-0">
+        <p className="font-semibold">{title}</p>
+        <p className="mt-1 leading-6">{children}</p>
+      </div>
+    </div>
+  );
+}
+
 function EditorLoadingState() {
   return (
     <main className="min-h-[calc(100dvh-73px)] bg-zinc-950 p-4 sm:p-6">
@@ -194,10 +444,77 @@ function EditorLoadingState() {
   );
 }
 
+async function ensureDocumentForJob({
+  documents,
+  jobId,
+  persist = true,
+  profile,
+  workspace,
+}: {
+  documents: ResumeDocument[];
+  jobId: string | null;
+  persist?: boolean;
+  profile: ResumeProfile;
+  workspace: V2WorkspaceState;
+}) {
+  const existingDocument = findDocumentForJob(documents, jobId);
+
+  if (existingDocument?.jobApplicationId === jobId) {
+    return documents;
+  }
+
+  const job = workspace.jobApplications.find((item) => item.id === jobId) ?? null;
+  const draft = buildResumeDraft(profile, {
+    jobDescription: job?.jobDescription ?? "",
+  });
+  const document = createResumeDocument({
+    draft,
+    jobApplicationId: jobId,
+    profile,
+    title: job ? `${job.roleTitle} at ${job.company}` : undefined,
+  });
+
+  if (!persist) {
+    return [document, ...documents];
+  }
+
+  return documentRepository.upsert(document);
+}
+
+function resolveActiveJobId(
+  workspace: V2WorkspaceState,
+  selectedJobId: string | null,
+) {
+  if (
+    selectedJobId &&
+    workspace.jobApplications.some((job) => job.id === selectedJobId)
+  ) {
+    return selectedJobId;
+  }
+
+  return workspace.jobApplications[0]?.id ?? null;
+}
+
 function formatJobLabel(job: JobApplication) {
   return (
     [job.roleTitle, job.company].filter(Boolean).join(" at ") || "Target job"
   );
+}
+
+function formatCoverage(score: number) {
+  if (score >= 70) {
+    return "Strong coverage";
+  }
+
+  if (score >= 40) {
+    return "Some gaps";
+  }
+
+  return "Needs review";
+}
+
+function formatRevisionCount(count: number) {
+  return `${count} ${count === 1 ? "checkpoint" : "checkpoints"}`;
 }
 
 function formatError(error: unknown) {

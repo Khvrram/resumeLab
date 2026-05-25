@@ -376,22 +376,25 @@ const coerceDateRange = (value: unknown) => {
   };
 };
 
-const coerceFactTextList = (value: unknown) => {
+const coerceEligibleFactTextList = (value: unknown) => {
   if (!Array.isArray(value)) {
     return [];
   }
 
   return value
+    .filter((item) => coerceVisibility(asRecord(item).visibility) === "eligible")
     .map((item) => coerceString(asRecord(item).text))
     .filter(Boolean);
 };
 
-const coerceFactTags = (value: unknown) => {
+const coerceEligibleFactTags = (value: unknown) => {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  const tags = value.flatMap((item) => coerceStringList(asRecord(item).tags));
+  const tags = value
+    .filter((item) => coerceVisibility(asRecord(item).visibility) === "eligible")
+    .flatMap((item) => coerceStringList(asRecord(item).tags));
   return Array.from(new Set(tags));
 };
 
@@ -461,11 +464,11 @@ export const normalizeProfile = (value: unknown): ResumeProfile => {
             bullets:
               coerceStringList(entry.bullets).length > 0
                 ? coerceStringList(entry.bullets)
-                : coerceFactTextList(entry.bulletFacts),
+                : coerceEligibleFactTextList(entry.bulletFacts),
             technologies:
               coerceStringList(entry.technologies).length > 0
                 ? coerceStringList(entry.technologies)
-                : coerceFactTags(entry.bulletFacts),
+                : coerceEligibleFactTags(entry.bulletFacts),
             visibility: coerceVisibility(entry.visibility),
           };
         })
@@ -491,7 +494,7 @@ export const normalizeProfile = (value: unknown): ResumeProfile => {
             bullets:
               coerceStringList(entry.bullets).length > 0
                 ? coerceStringList(entry.bullets)
-                : coerceFactTextList(entry.bulletFacts),
+                : coerceEligibleFactTextList(entry.bulletFacts),
             technologies: coerceStringList(entry.technologies),
             visibility: coerceVisibility(entry.visibility),
           };
@@ -510,7 +513,8 @@ export const normalizeProfile = (value: unknown): ResumeProfile => {
             startDate: coerceString(entry.startDate) || dateRange.start,
             endDate: coerceString(entry.endDate) || dateRange.end,
             notes:
-              coerceString(entry.notes) || coerceFactTextList(entry.notes).join("\n"),
+              coerceString(entry.notes) ||
+              coerceEligibleFactTextList(entry.notes).join("\n"),
             visibility: coerceVisibility(entry.visibility),
           };
         })
@@ -567,7 +571,7 @@ export const normalizeProfile = (value: unknown): ResumeProfile => {
                 bullets:
                   coerceStringList(optionalItem.bullets).length > 0
                     ? coerceStringList(optionalItem.bullets)
-                    : coerceFactTextList(optionalItem.bulletFacts),
+                    : coerceEligibleFactTextList(optionalItem.bulletFacts),
                 visibility: coerceVisibility(
                   optionalItem.visibility ?? entry.visibility,
                 ),
@@ -585,7 +589,7 @@ export const normalizeProfile = (value: unknown): ResumeProfile => {
             bullets:
               coerceStringList(entry.bullets).length > 0
                 ? coerceStringList(entry.bullets)
-                : coerceFactTextList(entry.bulletFacts),
+                : coerceEligibleFactTextList(entry.bulletFacts),
             visibility: coerceVisibility(entry.visibility),
           }];
         })

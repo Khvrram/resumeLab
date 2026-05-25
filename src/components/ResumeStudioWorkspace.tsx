@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowClockwise,
   Briefcase,
@@ -41,6 +41,8 @@ type ResumeStudioWorkspaceProps = {
   onOpenEditor: () => void;
   onOpenLibrary: () => void;
   onOpenProfile: () => void;
+  onSelectJob: (jobId: string | null) => void;
+  selectedJobId: string | null;
 };
 
 const v2Repository = createV2Repository();
@@ -61,6 +63,8 @@ export function ResumeStudioWorkspace({
   onOpenEditor,
   onOpenLibrary,
   onOpenProfile,
+  onSelectJob,
+  selectedJobId,
 }: ResumeStudioWorkspaceProps) {
   const [profile, setProfile] = useState<ResumeProfile | null>(null);
   const [workspace, setWorkspace] = useState<V2WorkspaceState | null>(null);
@@ -69,6 +73,7 @@ export function ResumeStudioWorkspace({
   const [isDirty, setIsDirty] = useState(false);
   const [saveState, setSaveState] = useState<StudioSaveState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const initialSelectedJobId = useRef(selectedJobId);
 
   useEffect(() => {
     let isMounted = true;
@@ -89,7 +94,14 @@ export function ResumeStudioWorkspace({
 
         setProfile(loadedProfile ?? createSampleProfile());
         setWorkspace(loadedWorkspace);
-        setActiveJobId(loadedWorkspace.jobApplications[0]?.id ?? null);
+        const initialJobId = initialSelectedJobId.current;
+        const nextActiveJobId =
+          initialJobId &&
+          loadedWorkspace.jobApplications.some((job) => job.id === initialJobId)
+            ? initialJobId
+            : loadedWorkspace.jobApplications[0]?.id ?? null;
+        setActiveJobId(nextActiveJobId);
+        onSelectJob(nextActiveJobId);
       } catch (error) {
         if (!isMounted) {
           return;
@@ -98,7 +110,10 @@ export function ResumeStudioWorkspace({
         const fallbackWorkspace = createSampleV2Workspace();
         setProfile(createSampleProfile());
         setWorkspace(fallbackWorkspace);
-        setActiveJobId(fallbackWorkspace.jobApplications[0]?.id ?? null);
+        const fallbackActiveJobId =
+          fallbackWorkspace.jobApplications[0]?.id ?? null;
+        setActiveJobId(fallbackActiveJobId);
+        onSelectJob(fallbackActiveJobId);
         setErrorMessage(formatError(error));
       } finally {
         if (isMounted) {
@@ -112,7 +127,18 @@ export function ResumeStudioWorkspace({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [onSelectJob]);
+
+  useEffect(() => {
+    if (
+      workspace &&
+      selectedJobId &&
+      selectedJobId !== activeJobId &&
+      workspace.jobApplications.some((job) => job.id === selectedJobId)
+    ) {
+      setActiveJobId(selectedJobId);
+    }
+  }, [activeJobId, selectedJobId, workspace]);
 
   const activeJob = useMemo(() => {
     if (!workspace) {
@@ -205,6 +231,7 @@ export function ResumeStudioWorkspace({
       };
     });
     setActiveJobId(job.id);
+    onSelectJob(job.id);
     markDirty();
   };
 
@@ -238,6 +265,14 @@ export function ResumeStudioWorkspace({
   const markDirty = () => {
     setIsDirty(true);
     setSaveState("idle");
+  };
+
+  const openEditor = async () => {
+    if (isDirty) {
+      await saveStudio();
+    }
+
+    onOpenEditor();
   };
 
   if (isLoading || !profile || !workspace || !draft) {
@@ -310,7 +345,7 @@ export function ResumeStudioWorkspace({
             <div className="grid gap-2">
               <button
                 className={secondaryButtonClass}
-                onClick={onOpenEditor}
+                onClick={() => void openEditor()}
                 type="button"
               >
                 <FileText size={17} />

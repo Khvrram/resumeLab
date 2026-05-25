@@ -164,7 +164,7 @@ export function V2Workspace() {
 
         if (isMounted) {
           setWorkspace(loaded);
-          setNotice("Loaded v2 workspace from local storage.");
+          setNotice("Loaded workspace from local storage.");
         }
       } catch (error) {
         if (isMounted) {
@@ -232,7 +232,7 @@ export function V2Workspace() {
       setWorkspace(nextWorkspace);
       setIsDirty(false);
       setSaveState("saved");
-      setNotice("Saved v2 workspace locally.");
+      setNotice("Saved workspace locally.");
     } catch (error) {
       setSaveState("error");
       setErrorMessage(formatError(error));
@@ -248,7 +248,7 @@ export function V2Workspace() {
       setWorkspace(sample);
       setIsDirty(false);
       setSaveState("saved");
-      setNotice("Reset v2 workspace to sample data.");
+      setNotice("Reset workspace to sample data.");
     } catch (error) {
       setSaveState("error");
       setErrorMessage(formatError(error));
@@ -266,12 +266,12 @@ export function V2Workspace() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `resumelab-v2-workspace-${new Date()
+      anchor.download = `resumelab-jobs-templates-${new Date()
         .toISOString()
         .slice(0, 10)}.json`;
       anchor.click();
       URL.revokeObjectURL(url);
-      setNotice("Exported v2 workspace JSON.");
+      setNotice("Exported jobs and templates JSON.");
     } catch (error) {
       setErrorMessage(formatError(error));
     }
@@ -282,7 +282,9 @@ export function V2Workspace() {
       <div className="mx-auto grid max-w-[1440px] gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <aside className="rounded-md border border-zinc-200 bg-white">
           <div className="border-b border-zinc-200 p-4">
-            <p className="text-sm font-semibold text-zinc-950">V2 Lab</p>
+            <p className="text-sm font-semibold text-zinc-950">
+              Jobs and Templates
+            </p>
             <p className="mt-1 text-sm leading-6 text-zinc-600">
               Build job targets, templates, prompt profiles, and local model
               endpoints as editable local records.
@@ -337,7 +339,7 @@ export function V2Workspace() {
                   <Badge>{isDirty ? "Unsaved changes" : "Saved baseline"}</Badge>
                 </div>
                 <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
-                  V2 Job Search Workspace
+                  Jobs, Templates, and Models
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
                   Create real local records for job applications, template
@@ -378,13 +380,13 @@ export function V2Workspace() {
           </header>
 
           {errorMessage ? (
-            <InlineNotice tone="error" title="V2 storage attention">
+            <InlineNotice tone="error" title="Storage attention">
               {errorMessage}
             </InlineNotice>
           ) : null}
 
           {notice && !errorMessage ? (
-            <InlineNotice tone="info" title="V2 workspace">
+            <InlineNotice tone="info" title="Workspace">
               {notice}
             </InlineNotice>
           ) : null}
@@ -407,8 +409,8 @@ export function V2Workspace() {
               workspace={workspace}
             />
           ) : (
-            <InlineNotice tone="error" title="V2 unavailable">
-              The v2 workspace could not initialize.
+            <InlineNotice tone="error" title="Workspace unavailable">
+              The jobs and templates workspace could not initialize.
             </InlineNotice>
           )}
         </section>
@@ -1424,5 +1426,5 @@ function formatLabel(value: string) {
 function formatError(error: unknown) {
   return error instanceof Error
     ? error.message
-    : "An unexpected v2 workspace error occurred.";
+    : "An unexpected workspace error occurred.";
 }
