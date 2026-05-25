@@ -1,9 +1,12 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, safeStorage, shell } = require("electron");
 const path = require("node:path");
+const { generateTailoringProposal } = require("./aiProviders.cjs");
+const { createSecretStore, validateProviderSecretId } = require("./secrets.cjs");
 const { createDesktopJsonStore, validateKey } = require("./storage.cjs");
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 let jsonStore = null;
+let secretStore = null;
 
 function getJsonStore() {
   if (!jsonStore) {
@@ -13,6 +16,16 @@ function getJsonStore() {
   }
 
   return jsonStore;
+}
+
+function getSecretStore() {
+  if (!secretStore) {
+    secretStore = createSecretStore(
+      path.join(app.getPath("userData"), "secrets", "providers.json"),
+    );
+  }
+
+  return secretStore;
 }
 
 function createMainWindow() {
@@ -51,6 +64,7 @@ function createMainWindow() {
 ipcMain.handle("app:get-runtime", () => ({
   isPackaged: app.isPackaged,
   platform: process.platform,
+  secretStorageAvailable: safeStorage.isEncryptionAvailable(),
   storageMode: "electron-sqlite",
   version: app.getVersion(),
 }));
@@ -66,6 +80,24 @@ ipcMain.handle("storage:remove", (_event, key) => {
 });
 
 ipcMain.handle("storage:export-all", () => getJsonStore().exportAll());
+
+ipcMain.handle("secrets:provider-key-status", (_event, providerId) =>
+  getSecretStore().hasProviderKey(validateProviderSecretId(providerId)),
+);
+
+ipcMain.handle("secrets:set-provider-key", (_event, providerId, secret) => {
+  getSecretStore().setProviderKey(validateProviderSecretId(providerId), secret);
+});
+
+ipcMain.handle("secrets:delete-provider-key", (_event, providerId) => {
+  getSecretStore().deleteProviderKey(validateProviderSecretId(providerId));
+});
+
+ipcMain.handle("ai:generate-tailoring-proposal", async (_event, request) =>
+  generateTailoringProposal(request, (providerId) =>
+    getSecretStore().getProviderKey(providerId),
+  ),
+);
 
 app.whenReady().then(() => {
   createMainWindow();

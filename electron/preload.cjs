@@ -1,7 +1,19 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("resumelab", {
+  ai: {
+    generateTailoringProposal: (request) =>
+      ipcRenderer.invoke("ai:generate-tailoring-proposal", request),
+  },
   getRuntime: () => ipcRenderer.invoke("app:get-runtime"),
+  secrets: {
+    deleteProviderKey: (providerId) =>
+      ipcRenderer.invoke("secrets:delete-provider-key", providerId),
+    hasProviderKey: (providerId) =>
+      ipcRenderer.invoke("secrets:provider-key-status", providerId),
+    setProviderKey: (providerId, secret) =>
+      ipcRenderer.invoke("secrets:set-provider-key", providerId, secret),
+  },
   storage: {
     exportAll: () => ipcRenderer.invoke("storage:export-all"),
     getItem: (key) => ipcRenderer.invoke("storage:get", key),

@@ -12,15 +12,25 @@ import {
   Stack,
   WarningCircle,
 } from "@phosphor-icons/react";
+import { buildResumeDraft, renderResumePlainText } from "../domain/resumeDraft";
 import {
-  buildAiEgressPreview,
-  buildResumeDraft,
-  renderResumePlainText,
-} from "../domain/resumeDraft";
+  buildTailoringPrompt,
+  createTailoringProposal,
+  type AiProviderConfig,
+  type AiTailoringProposal,
+} from "../domain/aiTailoring";
+import {
+  createResumeDocument,
+  createResumeRevision,
+  findDocumentForJob,
+  updateResumeDocumentContent,
+} from "../domain/resumeDocuments";
 import {
   createJobApplication,
   refreshJobApplicationSignals,
 } from "../domain/v2Actions";
+import { createAiSettingsRepository } from "../storage/aiSettingsRepository";
+import { createResumeDocumentRepository } from "../storage/resumeDocumentRepository";
 import { createV2Repository } from "../storage/v2Repository";
 import {
   countVisibility,
@@ -36,6 +46,7 @@ import { createSampleV2Workspace } from "../domain/v2";
 import type { JobApplication, V2WorkspaceState } from "../domain/v2";
 
 type StudioSaveState = "idle" | "saving" | "saved" | "error";
+type AiRunState = "idle" | "saving-key" | "generating" | "applying" | "error";
 
 type ResumeStudioWorkspaceProps = {
   onOpenEditor: () => void;
@@ -46,6 +57,8 @@ type ResumeStudioWorkspaceProps = {
 };
 
 const v2Repository = createV2Repository();
+const aiSettingsRepository = createAiSettingsRepository();
+const resumeDocumentRepository = createResumeDocumentRepository();
 
 const inputClass =
   "min-h-10 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200";
@@ -72,6 +85,12 @@ export function ResumeStudioWorkspace({
   const [isLoading, setIsLoading] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [saveState, setSaveState] = useState<StudioSaveState>("idle");
+  const [aiConfigs, setAiConfigs] = useState<AiProviderConfig[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState("provider_openai");
+  const [apiKeyDraft, setApiKeyDraft] = useState("");
+  const [aiRunState, setAiRunState] = useState<AiRunState>("idle");
+  const [aiProposal, setAiProposal] = useState<AiTailoringProposal | null>(null);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const initialSelectedJobId = useRef(selectedJobId);
 
@@ -83,10 +102,19 @@ export function ResumeStudioWorkspace({
       setErrorMessage(null);
 
       try {
-        const [loadedProfile, loadedWorkspace] = await Promise.all([
+        const [loadedProfile, loadedWorkspace, loadedAiConfigs] = await Promise.all([
           loadProfileFromRepository(),
           v2Repository.load(),
+          aiSettingsRepository.loadProviderConfigs(),
         ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const hydratedAiConfigs = await hydrateProviderSecretStatus(
+          loadedAiConfigs,
+        );
 
         if (!isMounted) {
           return;
@@ -94,6 +122,12 @@ export function ResumeStudioWorkspace({
 
         setProfile(loadedProfile ?? createSampleProfile());
         setWorkspace(loadedWorkspace);
+        setAiConfigs(hydratedAiConfigs);
+        setSelectedProviderId(
+          hydratedAiConfigs.find((config) => config.enabled)?.id ??
+            hydratedAiConfigs[0]?.id ??
+            "provider_openai",
+        );
         const initialJobId = initialSelectedJobId.current;
         const nextActiveJobId =
           initialJobId &&
@@ -110,6 +144,11 @@ export function ResumeStudioWorkspace({
         const fallbackWorkspace = createSampleV2Workspace();
         setProfile(createSampleProfile());
         setWorkspace(fallbackWorkspace);
+        const fallbackAiConfigs = await hydrateProviderSecretStatus(
+          await aiSettingsRepository.loadProviderConfigs(),
+        );
+        setAiConfigs(fallbackAiConfigs);
+        setSelectedProviderId(fallbackAiConfigs[0]?.id ?? "provider_openai");
         const fallbackActiveJobId =
           fallbackWorkspace.jobApplications[0]?.id ?? null;
         setActiveJobId(fallbackActiveJobId);
@@ -166,16 +205,44 @@ export function ResumeStudioWorkspace({
     () => (draft ? renderResumePlainText(draft) : ""),
     [draft],
   );
+  const aiResumeText = useMemo(() => {
+    if (!draft || !profile) {
+      return "";
+    }
+
+    return renderResumePlainText({
+      ...draft,
+      contactLine: profile.privacy.keepContactPrivateByDefault
+        ? "[contact details withheld]"
+        : draft.contactLine,
+    });
+  }, [draft, profile]);
   const egressPreview = useMemo(
-    () =>
-      profile
-        ? buildAiEgressPreview(profile, activeJob?.jobDescription ?? "")
-        : "",
-    [activeJob?.jobDescription, profile],
+    () => {
+      if (!profile || !activeJob) {
+        return "";
+      }
+
+      return buildTailoringPrompt({
+        job: activeJob,
+        resumeText: aiResumeText,
+      }).egressPreview;
+    },
+    [activeJob, aiResumeText, profile],
   );
   const visibilityCounts = useMemo(
     () => (profile ? countVisibility(profile) : null),
     [profile],
+  );
+  const selectedProvider = useMemo(
+    () =>
+      aiConfigs.find((config) => config.id === selectedProviderId) ??
+      aiConfigs[0] ??
+      null,
+    [aiConfigs, selectedProviderId],
+  );
+  const canUseDesktopAi = Boolean(
+    window.resumelab?.ai && window.resumelab.secrets,
   );
 
   const updateProfile = (updater: (profile: ResumeProfile) => ResumeProfile) => {
@@ -273,6 +340,179 @@ export function ResumeStudioWorkspace({
     }
 
     onOpenEditor();
+  };
+
+  const updateSelectedProvider = (patch: Partial<AiProviderConfig>) => {
+    if (!selectedProvider) {
+      return;
+    }
+
+    setAiConfigs((current) =>
+      current.map((config) =>
+        config.id === selectedProvider.id
+          ? { ...config, ...patch, updatedAt: new Date().toISOString() }
+          : config,
+      ),
+    );
+    setAiRunState("idle");
+    setAiMessage("AI provider settings changed. Save them before a run.");
+  };
+
+  const saveSelectedProviderSettings = async () => {
+    if (!selectedProvider) {
+      return;
+    }
+
+    setAiRunState("saving-key");
+    setAiMessage(null);
+
+    try {
+      const saved = await aiSettingsRepository.upsertProviderConfig(
+        selectedProvider,
+      );
+      setAiConfigs(await hydrateProviderSecretStatus(saved));
+      setAiRunState("idle");
+      setAiMessage("Saved provider metadata locally.");
+    } catch (error) {
+      setAiRunState("error");
+      setAiMessage(formatError(error));
+    }
+  };
+
+  const saveProviderKey = async () => {
+    if (!selectedProvider || !window.resumelab?.secrets) {
+      setAiRunState("error");
+      setAiMessage("Provider keys can only be saved in the Electron desktop app.");
+      return;
+    }
+
+    setAiRunState("saving-key");
+    setAiMessage(null);
+
+    try {
+      await window.resumelab.secrets.setProviderKey(
+        selectedProvider.id,
+        apiKeyDraft,
+      );
+      const saved = await aiSettingsRepository.upsertProviderConfig({
+        ...selectedProvider,
+        hasSecret: true,
+      });
+      setAiConfigs(await hydrateProviderSecretStatus(saved));
+      setApiKeyDraft("");
+      setAiRunState("idle");
+      setAiMessage("Saved provider key with OS-backed desktop encryption.");
+    } catch (error) {
+      setAiRunState("error");
+      setAiMessage(formatError(error));
+    }
+  };
+
+  const deleteProviderKey = async () => {
+    if (!selectedProvider || !window.resumelab?.secrets) {
+      return;
+    }
+
+    setAiRunState("saving-key");
+    setAiMessage(null);
+
+    try {
+      await window.resumelab.secrets.deleteProviderKey(selectedProvider.id);
+      const saved = await aiSettingsRepository.upsertProviderConfig({
+        ...selectedProvider,
+        hasSecret: false,
+      });
+      setAiConfigs(await hydrateProviderSecretStatus(saved));
+      setAiRunState("idle");
+      setAiMessage("Removed the saved provider key.");
+    } catch (error) {
+      setAiRunState("error");
+      setAiMessage(formatError(error));
+    }
+  };
+
+  const generateAiProposal = async () => {
+    if (!activeJob || !selectedProvider) {
+      return;
+    }
+
+    if (!window.resumelab?.ai) {
+      setAiRunState("error");
+      setAiMessage("AI calls run through the Electron desktop bridge.");
+      return;
+    }
+
+    const prompt = buildTailoringPrompt({
+      job: activeJob,
+      resumeText: aiResumeText,
+    });
+
+    setAiRunState("generating");
+    setAiMessage(null);
+    setAiProposal(null);
+
+    try {
+      const response = await window.resumelab.ai.generateTailoringProposal({
+        baseUrl: selectedProvider.baseUrl,
+        model: selectedProvider.model,
+        provider: selectedProvider.provider,
+        providerId: selectedProvider.id,
+        systemPrompt: prompt.systemPrompt,
+        userPrompt: prompt.userPrompt,
+      });
+      const proposal = createTailoringProposal({
+        job: activeJob,
+        model: selectedProvider.model,
+        originalResumeText: plainText,
+        provider: selectedProvider.provider,
+        response,
+      });
+
+      setAiProposal(proposal);
+      setAiRunState("idle");
+      setAiMessage("Generated a proposal. Review it before applying.");
+    } catch (error) {
+      setAiRunState("error");
+      setAiMessage(formatError(error));
+    }
+  };
+
+  const applyAiProposal = async () => {
+    if (!aiProposal || !activeJob || !profile || !draft) {
+      return;
+    }
+
+    setAiRunState("applying");
+    setAiMessage(null);
+
+    try {
+      const documents = await resumeDocumentRepository.load();
+      const existingDocument = findDocumentForJob(documents, activeJob.id);
+      const baseDocument =
+        existingDocument ??
+        createResumeDocument({
+          draft,
+          jobApplicationId: activeJob.id,
+          profile,
+          title: `${activeJob.roleTitle} at ${activeJob.company}`,
+        });
+      const checkpointedDocument = createResumeRevision(
+        baseDocument,
+        "Before AI proposal",
+      );
+      const updatedDocument = updateResumeDocumentContent(checkpointedDocument, {
+        mode: "text",
+        textContent: restoreResumeHeader(aiProposal.revisedText, plainText),
+      });
+
+      await resumeDocumentRepository.upsert(updatedDocument);
+      onSelectJob(activeJob.id);
+      setAiRunState("idle");
+      onOpenEditor();
+    } catch (error) {
+      setAiRunState("error");
+      setAiMessage(formatError(error));
+    }
   };
 
   if (isLoading || !profile || !workspace || !draft) {
@@ -577,6 +817,180 @@ export function ResumeStudioWorkspace({
             </div>
           </section>
 
+          <section className="rounded-lg border border-zinc-200 bg-white">
+            <div className="border-b border-zinc-200 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold">AI tailoring</h2>
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">
+                    Provider keys stay in the desktop secret bridge.
+                  </p>
+                </div>
+                <span
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium ${
+                    selectedProvider?.hasSecret
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border-amber-200 bg-amber-50 text-amber-800"
+                  }`}
+                >
+                  {selectedProvider?.hasSecret ? "Key saved" : "No key"}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-3 p-4">
+              {!canUseDesktopAi ? (
+                <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                  Open the Electron desktop app to save provider keys and run AI
+                  calls. Browser preview keeps this disabled.
+                </p>
+              ) : null}
+
+              <label className="grid gap-2 text-sm">
+                <span className="font-medium text-zinc-700">Provider</span>
+                <select
+                  className={inputClass}
+                  onChange={(event) => setSelectedProviderId(event.target.value)}
+                  value={selectedProvider?.id ?? ""}
+                >
+                  {aiConfigs.map((config) => (
+                    <option key={config.id} value={config.id}>
+                      {config.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {selectedProvider ? (
+                <>
+                  <TextInput
+                    label="Model"
+                    onChange={(model) => updateSelectedProvider({ model })}
+                    value={selectedProvider.model}
+                  />
+                  <TextInput
+                    label="Base URL"
+                    onChange={(baseUrl) => updateSelectedProvider({ baseUrl })}
+                    value={selectedProvider.baseUrl}
+                  />
+                  <label className="grid gap-2 text-sm">
+                    <span className="font-medium text-zinc-700">API key</span>
+                    <input
+                      className={inputClass}
+                      onChange={(event) => setApiKeyDraft(event.target.value)}
+                      placeholder={
+                        selectedProvider.hasSecret
+                          ? "Saved key is hidden"
+                          : "Paste provider key"
+                      }
+                      type="password"
+                      value={apiKeyDraft}
+                    />
+                  </label>
+                </>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={secondaryButtonClass}
+                  disabled={!selectedProvider || aiRunState === "saving-key"}
+                  onClick={() => void saveSelectedProviderSettings()}
+                  type="button"
+                >
+                  Save settings
+                </button>
+                <button
+                  className={secondaryButtonClass}
+                  disabled={
+                    !canUseDesktopAi ||
+                    !selectedProvider ||
+                    !apiKeyDraft ||
+                    aiRunState === "saving-key"
+                  }
+                  onClick={() => void saveProviderKey()}
+                  type="button"
+                >
+                  Save key
+                </button>
+                <button
+                  className={secondaryButtonClass}
+                  disabled={!canUseDesktopAi || !selectedProvider?.hasSecret}
+                  onClick={() => void deleteProviderKey()}
+                  type="button"
+                >
+                  Clear key
+                </button>
+              </div>
+
+              <button
+                className={primaryButtonClass}
+                disabled={
+                  !canUseDesktopAi ||
+                  !selectedProvider?.hasSecret ||
+                  !activeJob?.jobDescription.trim() ||
+                  aiRunState === "generating"
+                }
+                onClick={() => void generateAiProposal()}
+                type="button"
+              >
+                {aiRunState === "generating" ? (
+                  <ArrowClockwise className="animate-spin" size={17} />
+                ) : (
+                  <CheckCircle size={17} />
+                )}
+                Generate proposal
+              </button>
+
+              {aiMessage ? (
+                <p
+                  className={`rounded-md border p-3 text-xs leading-5 ${
+                    aiRunState === "error"
+                      ? "border-red-200 bg-red-50 text-red-900"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-600"
+                  }`}
+                >
+                  {aiMessage}
+                </p>
+              ) : null}
+
+              {aiProposal ? (
+                <div className="grid gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-950">
+                      Proposal ready
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-zinc-500">
+                      {aiProposal.provider} / {aiProposal.model}
+                    </p>
+                  </div>
+                  <textarea
+                    className={`${textareaClass} min-h-52 font-mono text-xs leading-5`}
+                    readOnly
+                    value={aiProposal.revisedText}
+                  />
+                  {aiProposal.suggestedAdditions.length > 0 ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
+                      <p className="font-semibold">Needs user confirmation</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-4">
+                        {aiProposal.suggestedAdditions.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  <button
+                    className={primaryButtonClass}
+                    disabled={aiRunState === "applying"}
+                    onClick={() => void applyAiProposal()}
+                    type="button"
+                  >
+                    Open proposal in editor
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </section>
+
           <section className="rounded-lg border border-zinc-200 bg-white p-4">
             <div className="grid gap-3">
               <button
@@ -742,6 +1156,37 @@ function StudioLoadingState() {
       </div>
     </main>
   );
+}
+
+async function hydrateProviderSecretStatus(configs: AiProviderConfig[]) {
+  if (!window.resumelab?.secrets) {
+    return configs.map((config) => ({ ...config, hasSecret: false }));
+  }
+
+  return Promise.all(
+    configs.map(async (config) => ({
+      ...config,
+      hasSecret: await window.resumelab!.secrets!.hasProviderKey(config.id),
+    })),
+  );
+}
+
+function restoreResumeHeader(proposedText: string, currentText: string) {
+  const proposedLines = proposedText.split(/\r?\n/);
+  const currentLines = currentText.split(/\r?\n/);
+
+  if (proposedLines.length < 3 || currentLines.length < 3) {
+    return proposedText;
+  }
+
+  return [
+    currentLines[0],
+    currentLines[1],
+    currentLines[2],
+    ...proposedLines.slice(3),
+  ]
+    .join("\n")
+    .trim();
 }
 
 function formatError(error: unknown) {
