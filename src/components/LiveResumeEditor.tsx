@@ -47,10 +47,10 @@ const modeOptions: Array<{
 ];
 
 const secondaryButtonClass =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 text-sm font-medium text-white transition hover:bg-white/15 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45";
 
 const darkButtonClass =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 text-sm font-medium text-white transition hover:bg-white/15 active:translate-y-px";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 text-sm font-medium text-white transition hover:bg-white/15 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45";
 
 export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
   const generatedText = useMemo(() => renderKhurramsResumeText(draft), [draft]);
@@ -112,8 +112,8 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
   const activeSource = mode === "latex" ? latexBuffer : textBuffer;
   const editorClass =
     mode === "latex"
-      ? "min-h-[39rem] w-full resize-y rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-xs leading-5 text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
-      : "min-h-[39rem] w-full resize-y rounded-lg border border-zinc-300 bg-white px-4 py-3 font-mono text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200";
+      ? "min-h-[34rem] w-full resize-y rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-xs leading-5 text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 lg:min-h-[calc(100dvh-19rem)]"
+      : "min-h-[34rem] w-full resize-y rounded-lg border border-zinc-300 bg-white px-4 py-3 font-mono text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200 lg:min-h-[calc(100dvh-19rem)]";
 
   const resetFromFacts = () => {
     setTextBuffer(generatedText);
@@ -146,21 +146,21 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
   };
 
   return (
-    <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_22px_55px_-38px_rgba(24,24,27,0.5)]">
-      <div className="grid gap-4 border-b border-zinc-200 bg-white p-4 xl:grid-cols-[1fr_auto] xl:items-center">
+    <section className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950 shadow-[0_34px_90px_-50px_rgba(0,0,0,0.95)]">
+      <div className="grid gap-4 border-b border-white/10 bg-zinc-900/90 p-3 lg:grid-cols-[1fr_auto] lg:items-center">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
             KhurramsResume
           </p>
-          <h3 className="mt-1 text-xl font-semibold tracking-tight text-zinc-950">
-            Live source and resume preview
+          <h3 className="mt-1 text-xl font-semibold tracking-tight text-white">
+            Source and preview
           </h3>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <div
             aria-label="Editor mode"
-            className="grid grid-cols-2 gap-1 rounded-md border border-zinc-200 bg-zinc-100 p-1"
+            className="grid grid-cols-2 gap-1 rounded-md border border-white/10 bg-zinc-950 p-1"
             role="tablist"
           >
             {modeOptions.map((option) => {
@@ -173,7 +173,7 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
                   className={`inline-flex h-8 min-w-20 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition active:translate-y-px ${
                     isActive
                       ? "bg-white text-zinc-950 shadow-sm"
-                      : "text-zinc-600 hover:bg-zinc-50"
+                      : "text-zinc-400 hover:bg-white/10 hover:text-white"
                   }`}
                   key={option.id}
                   onClick={() => setMode(option.id)}
@@ -209,15 +209,12 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-0 xl:grid-cols-[minmax(22rem,0.72fr)_minmax(34rem,1fr)]">
-        <div className="grid min-w-0 content-start gap-3 border-b border-zinc-200 bg-zinc-50 p-4 xl:border-b-0 xl:border-r">
+      <div className="grid min-w-0 gap-0 lg:min-h-[calc(100dvh-14.5rem)] xl:grid-cols-[minmax(25rem,0.84fr)_minmax(42rem,1.16fr)]">
+        <div className="grid min-w-0 content-start gap-3 border-b border-zinc-200 bg-[#f8f8f5] p-4 xl:border-b-0 xl:border-r">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-zinc-900">
-                {mode === "latex" ? "LaTeX source" : "Resume text"}
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">
-                Changes update the preview as you type.
+                {mode === "latex" ? "LaTeX source" : "Text source"}
               </p>
             </div>
             <span className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 font-mono text-xs text-zinc-500">
@@ -237,7 +234,7 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
         </div>
 
         <div className="min-w-0 bg-zinc-950 p-4 text-white">
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="flex items-center gap-2">
               <FileText size={18} />
               <div>
@@ -246,7 +243,7 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <button
                 className={darkButtonClass}
                 disabled={activePageIndex === 0}
@@ -257,7 +254,7 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
                 Previous
               </button>
               <div className="grid grid-cols-2 gap-1 rounded-md border border-white/10 bg-white/10 p-1">
-                {pages.map((sections, index) => {
+                {pages.map((_, index) => {
                   const isActive = index === activePageIndex;
 
                   return (
@@ -272,9 +269,6 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
                       type="button"
                     >
                       Page {index + 1}
-                      <span className="ml-1 font-mono text-[0.68rem] opacity-70">
-                        {sections.length}
-                      </span>
                     </button>
                   );
                 })}
@@ -291,7 +285,7 @@ export function LiveResumeEditor({ draft, profile }: LiveResumeEditorProps) {
             </div>
           </div>
 
-          <div className="max-h-[74rem] overflow-auto rounded-lg bg-zinc-900/70 p-3 ring-1 ring-white/10">
+          <div className="max-h-[74rem] overflow-auto rounded-lg bg-zinc-900/70 p-3 ring-1 ring-white/10 lg:max-h-[calc(100dvh-19rem)]">
             <ResumePage
               document={preview}
               pageNumber={activePageIndex + 1}
@@ -314,7 +308,7 @@ function ResumePage({
   sections: ResumePreviewSection[];
 }) {
   return (
-    <article className="mx-auto aspect-[8.5/11] w-full max-w-[48rem] overflow-hidden rounded-[3px] bg-white p-[5.6%] text-[0.62rem] leading-[1.28] text-zinc-950 shadow-[0_35px_80px_-45px_rgba(0,0,0,0.85)] ring-1 ring-zinc-300 sm:text-[0.72rem] 2xl:text-[0.78rem]">
+    <article className="mx-auto aspect-[8.5/11] w-full max-w-[52rem] overflow-hidden break-words rounded-[3px] bg-white p-[5.6%] text-[0.46rem] leading-[1.28] text-zinc-950 shadow-[0_35px_80px_-45px_rgba(0,0,0,0.85)] ring-1 ring-zinc-300 [overflow-wrap:anywhere] sm:text-[0.72rem] 2xl:text-[0.82rem]">
       <header className="border-b border-zinc-900 pb-2 text-center">
         <h4 className="text-[1.52em] font-semibold uppercase tracking-[0.065em]">
           {document.name || "Resume"}
@@ -323,7 +317,9 @@ function ResumePage({
           <p className="mt-1 text-[0.88em] text-zinc-700">{document.subtitle}</p>
         ) : null}
         {document.contact ? (
-          <p className="mt-1 text-[0.8em] text-zinc-600">{document.contact}</p>
+          <p className="mt-1 text-[0.8em] text-zinc-600 [overflow-wrap:anywhere]">
+            {document.contact}
+          </p>
         ) : null}
       </header>
 
@@ -335,29 +331,49 @@ function ResumePage({
                 {section.title}
               </h5>
               <div className="mt-1.5 grid gap-1.5">
-                {section.blocks.map((block, index) => (
-                  <div key={`${block.heading}-${index}`}>
-                    {block.heading ? (
-                      <div className="flex items-baseline justify-between gap-3">
-                        <p className="min-w-0 truncate font-semibold">
-                          {block.heading}
-                        </p>
-                        {block.meta ? (
-                          <p className="shrink-0 text-[0.84em] font-semibold">
-                            {block.meta}
+                {section.blocks.map((block, index) => {
+                  const isStandaloneLine =
+                    !block.meta &&
+                    block.bullets.length === 0 &&
+                    /summary|skills/i.test(section.title);
+
+                  return (
+                    <div key={`${block.heading}-${index}`}>
+                      {block.heading ? (
+                        isStandaloneLine ? (
+                          <p className="[overflow-wrap:anywhere]">
+                            {block.heading}
                           </p>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {block.bullets.length > 0 ? (
-                      <ul className="mt-0.5 list-disc space-y-[0.12rem] pl-4">
-                        {block.bullets.slice(0, 9).map((bullet, bulletIndex) => (
-                          <li key={`${bullet}-${bulletIndex}`}>{bullet}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ))}
+                        ) : (
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="min-w-0 truncate font-semibold">
+                              {block.heading}
+                            </p>
+                            {block.meta ? (
+                              <p className="shrink-0 text-[0.84em] font-semibold">
+                                {block.meta}
+                              </p>
+                            ) : null}
+                          </div>
+                        )
+                      ) : null}
+                      {block.bullets.length > 0 ? (
+                        <ul className="mt-0.5 list-disc space-y-[0.12rem] pl-4">
+                          {block.bullets
+                            .slice(0, 9)
+                            .map((bullet, bulletIndex) => (
+                              <li
+                                className="[overflow-wrap:anywhere]"
+                                key={`${bullet}-${bulletIndex}`}
+                              >
+                                {bullet}
+                              </li>
+                            ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </section>
           ))

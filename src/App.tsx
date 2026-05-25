@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
-import { Briefcase, Database, FileText, type Icon } from "@phosphor-icons/react";
+import {
+  Briefcase,
+  Database,
+  FileText,
+  NotePencil,
+  type Icon,
+} from "@phosphor-icons/react";
 import { ProfileVaultWorkspace } from "./components/ProfileVaultWorkspace";
+import { ResumeEditorWorkspace } from "./components/ResumeEditorWorkspace";
 import { ResumeStudioWorkspace } from "./components/ResumeStudioWorkspace";
 import { V2Workspace } from "./components/V2Workspace";
 
-type WorkspaceMode = "studio" | "profile" | "library";
+type WorkspaceMode = "studio" | "editor" | "profile" | "library";
 
 type WorkspaceModeOption = {
   id: WorkspaceMode;
@@ -17,8 +24,14 @@ const workspaceModeOptions: WorkspaceModeOption[] = [
   {
     id: "studio",
     label: "Studio",
-    description: "Tailor and export",
+    description: "Tailor inputs",
     icon: Briefcase,
+  },
+  {
+    id: "editor",
+    label: "Editor",
+    description: "Live resume",
+    icon: NotePencil,
   },
   {
     id: "profile",
@@ -43,7 +56,9 @@ const getInitialWorkspaceMode = (): WorkspaceMode => {
 
   const storedMode = window.localStorage.getItem(workspaceModeStorageKey);
 
-  return storedMode === "profile" || storedMode === "library"
+  return storedMode === "editor" ||
+    storedMode === "profile" ||
+    storedMode === "library"
     ? storedMode
     : "studio";
 };
@@ -72,7 +87,7 @@ export default function App() {
 
           <div
             aria-label="Workspace mode"
-            className="grid gap-1 rounded-md border border-zinc-200 bg-zinc-100 p-1 sm:grid-cols-3"
+            className="grid grid-cols-2 gap-1 rounded-md border border-zinc-200 bg-zinc-100 p-1 sm:grid-cols-4"
             role="tablist"
           >
             {workspaceModeOptions.map((option) => {
@@ -82,7 +97,7 @@ export default function App() {
               return (
                 <button
                   aria-selected={isActive}
-                  className={`flex min-h-11 min-w-0 items-center gap-2 rounded-md px-3 text-left transition active:translate-y-px sm:min-w-44 ${
+                  className={`flex min-h-11 min-w-0 items-center gap-2 rounded-md px-3 text-left transition active:translate-y-px sm:min-w-36 ${
                     isActive
                       ? "bg-white text-zinc-950 shadow-sm"
                       : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
@@ -113,9 +128,12 @@ export default function App() {
 
       {workspaceMode === "studio" ? (
         <ResumeStudioWorkspace
+          onOpenEditor={() => setWorkspaceMode("editor")}
           onOpenLibrary={() => setWorkspaceMode("library")}
           onOpenProfile={() => setWorkspaceMode("profile")}
         />
+      ) : workspaceMode === "editor" ? (
+        <ResumeEditorWorkspace />
       ) : workspaceMode === "profile" ? (
         <ProfileVaultWorkspace />
       ) : (

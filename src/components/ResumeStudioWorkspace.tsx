@@ -32,13 +32,13 @@ import {
   loadProfileFromRepository,
   saveProfileToRepository,
 } from "./profileRepositoryAdapter";
-import { LiveResumeEditor } from "./LiveResumeEditor";
 import { createSampleV2Workspace } from "../domain/v2";
 import type { JobApplication, V2WorkspaceState } from "../domain/v2";
 
 type StudioSaveState = "idle" | "saving" | "saved" | "error";
 
 type ResumeStudioWorkspaceProps = {
+  onOpenEditor: () => void;
   onOpenLibrary: () => void;
   onOpenProfile: () => void;
 };
@@ -58,6 +58,7 @@ const secondaryButtonClass =
   "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
 
 export function ResumeStudioWorkspace({
+  onOpenEditor,
   onOpenLibrary,
   onOpenProfile,
 }: ResumeStudioWorkspaceProps) {
@@ -309,6 +310,14 @@ export function ResumeStudioWorkspace({
             <div className="grid gap-2">
               <button
                 className={secondaryButtonClass}
+                onClick={onOpenEditor}
+                type="button"
+              >
+                <FileText size={17} />
+                Resume editor
+              </button>
+              <button
+                className={secondaryButtonClass}
                 onClick={onOpenProfile}
                 type="button"
               >
@@ -413,93 +422,89 @@ export function ResumeStudioWorkspace({
             ) : null}
           </section>
 
-          <section className="grid gap-5">
-            <div className="rounded-lg border border-zinc-200 bg-white">
-              <div className="grid gap-4 border-b border-zinc-200 p-4 lg:grid-cols-[1fr_auto] lg:items-start">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
-                    Profile core
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold tracking-tight">
-                    Approved source facts
-                  </h2>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <SignalMetric
-                    label="Matched"
-                    value={draft.match.matchedTools.length}
-                  />
-                  <SignalMetric
-                    label="Missing"
-                    value={draft.match.missingKeywords.length}
-                  />
-                  <SignalMetric label="Sections" value={draft.sections.length} />
-                </div>
+          <section className="rounded-lg border border-zinc-200 bg-white">
+            <div className="grid gap-4 border-b border-zinc-200 p-4 lg:grid-cols-[1fr_auto] lg:items-start">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
+                  Profile core
+                </p>
+                <h2 className="mt-2 text-xl font-semibold tracking-tight">
+                  Approved source facts
+                </h2>
               </div>
-              <div className="grid gap-4 p-4 xl:grid-cols-4">
-                <TextInput
-                  label="Name"
-                  onChange={(fullName) =>
-                    updateProfile((current) => ({
-                      ...current,
-                      basics: { ...current.basics, fullName },
-                    }))
-                  }
-                  value={profile.basics.fullName}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <SignalMetric
+                  label="Matched"
+                  value={draft.match.matchedTools.length}
                 />
-                <TextInput
-                  label="Headline"
-                  onChange={(headline) =>
-                    updateProfile((current) => ({
-                      ...current,
-                      basics: { ...current.basics, headline },
-                    }))
-                  }
-                  value={profile.basics.headline}
+                <SignalMetric
+                  label="Missing"
+                  value={draft.match.missingKeywords.length}
                 />
-                <TextInput
-                  label="Location"
-                  onChange={(location) =>
-                    updateProfile((current) => ({
-                      ...current,
-                      basics: { ...current.basics, location },
-                    }))
-                  }
-                  value={profile.basics.location}
-                />
-                <TextInput
-                  label="Email"
-                  onChange={(email) =>
-                    updateProfile((current) => ({
-                      ...current,
-                      basics: { ...current.basics, email },
-                    }))
-                  }
-                  value={profile.basics.email}
-                />
-                <label className="grid gap-2 text-sm xl:col-span-2">
-                  <span className="font-medium text-zinc-700">Summary</span>
-                  <textarea
-                    className={`${textareaClass} min-h-24`}
-                    onChange={(event) =>
-                      updateProfile((current) => ({
-                        ...current,
-                        basics: {
-                          ...current.basics,
-                          summary: event.target.value,
-                        },
-                      }))
-                    }
-                    value={profile.basics.summary}
-                  />
-                </label>
-                <div className="xl:col-span-2">
-                  <SkillsEditor profile={profile} updateProfile={updateProfile} />
-                </div>
+                <SignalMetric label="Sections" value={draft.sections.length} />
               </div>
             </div>
-
-            <LiveResumeEditor draft={draft} profile={profile} />
+            <div className="grid gap-4 p-4 xl:grid-cols-4">
+              <TextInput
+                label="Name"
+                onChange={(fullName) =>
+                  updateProfile((current) => ({
+                    ...current,
+                    basics: { ...current.basics, fullName },
+                  }))
+                }
+                value={profile.basics.fullName}
+              />
+              <TextInput
+                label="Headline"
+                onChange={(headline) =>
+                  updateProfile((current) => ({
+                    ...current,
+                    basics: { ...current.basics, headline },
+                  }))
+                }
+                value={profile.basics.headline}
+              />
+              <TextInput
+                label="Location"
+                onChange={(location) =>
+                  updateProfile((current) => ({
+                    ...current,
+                    basics: { ...current.basics, location },
+                  }))
+                }
+                value={profile.basics.location}
+              />
+              <TextInput
+                label="Email"
+                onChange={(email) =>
+                  updateProfile((current) => ({
+                    ...current,
+                    basics: { ...current.basics, email },
+                  }))
+                }
+                value={profile.basics.email}
+              />
+              <label className="grid gap-2 text-sm xl:col-span-2">
+                <span className="font-medium text-zinc-700">Summary</span>
+                <textarea
+                  className={`${textareaClass} min-h-24`}
+                  onChange={(event) =>
+                    updateProfile((current) => ({
+                      ...current,
+                      basics: {
+                        ...current.basics,
+                        summary: event.target.value,
+                      },
+                    }))
+                  }
+                  value={profile.basics.summary}
+                />
+              </label>
+              <div className="xl:col-span-2">
+                <SkillsEditor profile={profile} updateProfile={updateProfile} />
+              </div>
+            </div>
           </section>
         </section>
 
