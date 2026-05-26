@@ -1,5 +1,5 @@
 import {
-  createSampleProfile,
+  createEmptyProfile,
   isResumeProfile,
   type ResumeProfile,
 } from "../domain/profile";
@@ -10,7 +10,7 @@ export const PROFILE_STORAGE_KEY = "resumelab.profile.v1";
 export interface ProfileRepository {
   load(): Promise<ResumeProfile>;
   save(profile: ResumeProfile): Promise<void>;
-  reset(): Promise<ResumeProfile>;
+  reset(profile?: ResumeProfile): Promise<ResumeProfile>;
   exportJson(): Promise<string>;
 }
 
@@ -21,9 +21,9 @@ export function createProfileRepository(
     const storedProfile = await storage.getItem(PROFILE_STORAGE_KEY);
 
     if (storedProfile === null) {
-      const seededProfile = createSampleProfile();
-      await storage.setItem(PROFILE_STORAGE_KEY, serializeProfile(seededProfile));
-      return cloneProfile(seededProfile);
+      const emptyProfile = createEmptyProfile();
+      await storage.setItem(PROFILE_STORAGE_KEY, serializeProfile(emptyProfile));
+      return cloneProfile(emptyProfile);
     }
 
     return deserializeProfile(storedProfile);
@@ -33,9 +33,11 @@ export function createProfileRepository(
     await storage.setItem(PROFILE_STORAGE_KEY, serializeProfile(profile));
   }
 
-  async function reset(): Promise<ResumeProfile> {
-    await storage.removeItem(PROFILE_STORAGE_KEY);
-    return load();
+  async function reset(
+    profile: ResumeProfile = createEmptyProfile(),
+  ): Promise<ResumeProfile> {
+    await save(profile);
+    return cloneProfile(profile);
   }
 
   async function exportJson(): Promise<string> {

@@ -4,6 +4,7 @@ import {
   ClockCounterClockwise,
   Gauge,
   Palette,
+  Plus,
   WarningCircle,
   type Icon,
 } from "@phosphor-icons/react";
@@ -18,12 +19,13 @@ import {
   type ResumeDocument,
   type ResumeDocumentContentPatch,
 } from "../domain/resumeDocuments";
-import { createSampleV2Workspace } from "../domain/v2";
+import { createEmptyV2Workspace } from "../domain/v2";
 import { createResumeDocumentRepository } from "../storage/resumeDocumentRepository";
 import { createV2Repository } from "../storage/v2Repository";
 import { LiveResumeEditor } from "./LiveResumeEditor";
 import {
-  createSampleProfile,
+  createEmptyProfile,
+  isProfileEmpty,
   type ResumeProfile,
 } from "./profileTypes";
 import { loadProfileFromRepository } from "./profileRepositoryAdapter";
@@ -32,6 +34,8 @@ import type { JobApplication, V2WorkspaceState } from "../domain/v2";
 type EditorSaveState = "idle" | "saving" | "saved" | "error";
 
 type ResumeEditorWorkspaceProps = {
+  onOpenProfile: () => void;
+  onOpenStudio: () => void;
   onSelectJob: (jobId: string | null) => void;
   selectedJobId: string | null;
 };
@@ -43,6 +47,8 @@ const toolbarSelectClass =
   "h-10 min-w-0 rounded-md border border-white/15 bg-zinc-950 px-3 text-sm text-white outline-none transition focus:border-white/40 focus:ring-2 focus:ring-white/10";
 
 export function ResumeEditorWorkspace({
+  onOpenProfile,
+  onOpenStudio,
   onSelectJob,
   selectedJobId,
 }: ResumeEditorWorkspaceProps) {
@@ -76,7 +82,7 @@ export function ResumeEditorWorkspace({
           return;
         }
 
-        const nextProfile = loadedProfile ?? createSampleProfile();
+        const nextProfile = loadedProfile ?? createEmptyProfile();
         const nextActiveJobId = resolveActiveJobId(
           loadedWorkspace,
           initialSelectedJobId.current,
@@ -102,8 +108,8 @@ export function ResumeEditorWorkspace({
           return;
         }
 
-        const fallbackProfile = createSampleProfile();
-        const fallbackWorkspace = createSampleV2Workspace();
+        const fallbackProfile = createEmptyProfile();
+        const fallbackWorkspace = createEmptyV2Workspace();
         const fallbackActiveJobId =
           fallbackWorkspace.jobApplications[0]?.id ?? null;
         const fallbackDocuments = await ensureDocumentForJob({
@@ -280,8 +286,17 @@ export function ResumeEditorWorkspace({
     }
   };
 
-  if (isLoading || !profile || !workspace || !draft || !activeDocument) {
+  if (isLoading || !profile || !workspace || !draft) {
     return <EditorLoadingState />;
+  }
+
+  if (!activeDocument) {
+    return (
+      <EditorEmptyState
+        onOpenProfile={onOpenProfile}
+        onOpenStudio={onOpenStudio}
+      />
+    );
   }
 
   const isStale = activeDocument.sourceProfileUpdatedAt !== profile.updatedAt;
@@ -397,6 +412,54 @@ function EditorFact({
   );
 }
 
+function EditorEmptyState({
+  onOpenProfile,
+  onOpenStudio,
+}: {
+  onOpenProfile: () => void;
+  onOpenStudio: () => void;
+}) {
+  return (
+    <main className="min-h-[calc(100dvh-65px)] bg-[#0d0d0f] text-white">
+      <div className="mx-auto grid max-w-[1120px] gap-5 px-4 py-6 sm:px-6">
+        <section className="grid min-h-[34rem] content-center gap-6 rounded-lg border border-white/10 bg-[#161619] p-6 shadow-[0_34px_90px_-55px_rgba(0,0,0,0.95)] sm:p-10">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-zinc-300">
+              KhurramsResume
+            </span>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Create profile facts before editing a resume.
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
+              The editor only creates resume drafts from saved local facts. Add
+              your basics, experience, projects, education, and skills first, or
+              create a target job in Studio.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 active:translate-y-px"
+              onClick={onOpenProfile}
+              type="button"
+            >
+              <Plus size={17} />
+              Add profile facts
+            </button>
+            <button
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 active:translate-y-px"
+              onClick={onOpenStudio}
+              type="button"
+            >
+              Open Studio
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
 function Notice({
   children,
   title,
@@ -453,6 +516,10 @@ async function ensureDocumentForJob({
   const existingDocument = findDocumentForJob(documents, jobId);
 
   if (existingDocument?.jobApplicationId === jobId) {
+    return documents;
+  }
+
+  if (!jobId && documents.length === 0 && isProfileEmpty(profile)) {
     return documents;
   }
 

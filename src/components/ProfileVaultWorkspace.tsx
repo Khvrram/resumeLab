@@ -232,11 +232,13 @@ export function ProfileVaultWorkspace() {
           return;
         }
 
-        setProfile(storedProfile ?? createEmptyProfile());
+        const nextProfile = storedProfile ?? createEmptyProfile();
+
+        setProfile(nextProfile);
         setNotice(
-          storedProfile
-            ? "Loaded local profile."
-            : "No saved profile found. The vault is ready for new facts.",
+          isProfileEmpty(nextProfile)
+            ? "No profile facts saved yet. Start with your real career facts."
+            : "Loaded local profile.",
         );
       } catch (error) {
         if (!isMounted) {
@@ -310,7 +312,7 @@ export function ProfileVaultWorkspace() {
       setProfile(sampleProfile);
       setIsDirty(false);
       setSaveState("saved");
-      setNotice("Sample data saved locally.");
+      setNotice("Sample profile data loaded locally.");
     } catch (error) {
       const sampleProfile = createSampleProfile();
       setProfile(sampleProfile);
@@ -551,7 +553,7 @@ function WorkspaceHeader({
             type="button"
           >
             <ArrowClockwise size={17} />
-            Reset sample data
+            Load sample data
           </button>
           <button
             className={secondaryButtonClass}
@@ -773,38 +775,38 @@ function BasicsSection({
         <TextInput
           label="Full name"
           onChange={(value) => updateBasics("fullName", value)}
-          placeholder="Maya Rios"
+          placeholder="Your full name"
           value={profile.basics.fullName}
         />
         <TextInput
           label="Headline"
           onChange={(value) => updateBasics("headline", value)}
-          placeholder="Product-minded full-stack engineer"
+          placeholder="Target role or professional headline"
           value={profile.basics.headline}
         />
         <TextInput
           label="Location"
           onChange={(value) => updateBasics("location", value)}
-          placeholder="Chicago, IL"
+          placeholder="City, state, or remote"
           value={profile.basics.location}
         />
         <TextInput
           label="Email"
           onChange={(value) => updateBasics("email", value)}
-          placeholder="maya@example.com"
+          placeholder="you@example.com"
           type="email"
           value={profile.basics.email}
         />
         <TextInput
           label="Phone"
           onChange={(value) => updateBasics("phone", value)}
-          placeholder="+1 (312) 847-1928"
+          placeholder="Phone number"
           value={profile.basics.phone}
         />
         <TextInput
           label="Website"
           onChange={(value) => updateBasics("website", value)}
-          placeholder="https://example.dev"
+          placeholder="Personal site or portfolio URL"
           type="url"
           value={profile.basics.website}
         />
@@ -813,7 +815,7 @@ function BasicsSection({
       <TextArea
         label="Profile summary"
         onChange={(value) => updateBasics("summary", value)}
-        placeholder="A concise factual summary of the user's work focus and strengths."
+        placeholder="A concise factual summary of your work focus and strengths."
         value={profile.basics.summary}
       />
 
@@ -855,7 +857,7 @@ function BasicsSection({
               <TextInput
                 label="URL"
                 onChange={(value) => updateLink(link.id, { url: value })}
-                placeholder="https://example.dev"
+                placeholder="https://your-domain.com"
                 type="url"
                 value={link.url}
               />
@@ -964,7 +966,7 @@ function ExperienceSection({
                   onChange={(value) =>
                     updateExperience(entry.id, { company: value })
                   }
-                  placeholder="Northline Health"
+                  placeholder="Company or organization"
                   value={entry.company}
                 />
                 <TextInput
@@ -972,7 +974,7 @@ function ExperienceSection({
                   onChange={(value) =>
                     updateExperience(entry.id, { location: value })
                   }
-                  placeholder="Remote"
+                  placeholder="City, state, or remote"
                   value={entry.location}
                 />
                 <VisibilitySelect
@@ -996,7 +998,7 @@ function ExperienceSection({
                   onChange={(value) =>
                     updateExperience(entry.id, { endDate: value })
                   }
-                  placeholder="2025-08"
+                  placeholder="End date or leave blank"
                   value={entry.isCurrent ? "" : entry.endDate}
                 />
               </div>
@@ -1023,7 +1025,7 @@ function ExperienceSection({
                 onChange={(value) =>
                   updateExperience(entry.id, { bullets: textToList(value) })
                 }
-                placeholder="Led a rewrite of scheduling dashboards."
+                placeholder="Factual accomplishment with scope, tool, or result."
                 value={listToText(entry.bullets)}
               />
               <TextInput
@@ -1113,7 +1115,7 @@ function ProjectsSection({
                 <TextInput
                   label="Project title"
                   onChange={(value) => updateProject(entry.id, { title: value })}
-                  placeholder="Local Metrics Workbench"
+                  placeholder="Project name"
                   value={entry.title}
                 />
                 <VisibilitySelect
@@ -1126,7 +1128,7 @@ function ProjectsSection({
                 <TextInput
                   label="Project URL"
                   onChange={(value) => updateProject(entry.id, { url: value })}
-                  placeholder="https://example.dev/workbench"
+                  placeholder="Project URL"
                   type="url"
                   value={entry.url}
                 />
@@ -1135,7 +1137,7 @@ function ProjectsSection({
                   onChange={(value) =>
                     updateProject(entry.id, { repository: value })
                   }
-                  placeholder="https://github.com/user/project"
+                  placeholder="Repository URL"
                   type="url"
                   value={entry.repository}
                 />
@@ -1167,7 +1169,7 @@ function ProjectsSection({
                 onChange={(value) =>
                   updateProject(entry.id, { bullets: textToList(value) })
                 }
-                placeholder="Designed import validation and saved report templates."
+                placeholder="Factual project result or technical contribution."
                 value={listToText(entry.bullets)}
               />
               <TextInput
@@ -1259,7 +1261,7 @@ function EducationSection({
                   onChange={(value) =>
                     updateEducation(entry.id, { school: value })
                   }
-                  placeholder="DePaul University"
+                  placeholder="School or institution"
                   value={entry.school}
                 />
                 <VisibilitySelect
@@ -1288,7 +1290,7 @@ function EducationSection({
                   onChange={(value) =>
                     updateEducation(entry.id, { location: value })
                   }
-                  placeholder="Chicago, IL"
+                  placeholder="City, state, or remote"
                   value={entry.location}
                 />
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1541,7 +1543,7 @@ function OptionalSectionsSection({
                   onChange={(value) =>
                     updateOptionalSection(entry.id, { title: value })
                   }
-                  placeholder="AWS Certified Cloud Practitioner"
+                  placeholder="Certification, award, publication, or custom item"
                   value={entry.title}
                 />
                 <TextInput
@@ -1549,7 +1551,7 @@ function OptionalSectionsSection({
                   onChange={(value) =>
                     updateOptionalSection(entry.id, { organization: value })
                   }
-                  placeholder="Amazon Web Services"
+                  placeholder="Issuing organization"
                   value={entry.organization}
                 />
                 <TextInput
@@ -1574,7 +1576,7 @@ function OptionalSectionsSection({
                 onChange={(value) =>
                   updateOptionalSection(entry.id, { bullets: textToList(value) })
                 }
-                placeholder="Validated cloud architecture and security fundamentals."
+                placeholder="Factual detail that can be reused in a resume."
                 value={listToText(entry.bullets)}
               />
             </ItemPanel>
@@ -1995,7 +1997,8 @@ function EmptyProfileBanner({
               No profile facts saved
             </h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-600">
-              Start with basics or load sample data to check the full editor shape.
+              Start with basics, then add experience, projects, education, and
+              skills as verified source facts.
             </p>
           </div>
         </div>
@@ -2010,7 +2013,7 @@ function EmptyProfileBanner({
             type="button"
           >
             <ArrowClockwise size={16} />
-            Reset sample data
+            Load sample data
           </button>
         </div>
       </div>

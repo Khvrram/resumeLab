@@ -17,6 +17,7 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import {
+  createSampleV2Workspace,
   type JobApplication,
   type JobApplicationStatus,
   type LocalModelEndpoint,
@@ -164,7 +165,11 @@ export function V2Workspace() {
 
         if (isMounted) {
           setWorkspace(loaded);
-          setNotice("Loaded workspace from local storage.");
+          setNotice(
+            isWorkspaceEmpty(loaded)
+              ? "No jobs, templates, prompts, or model endpoints saved yet."
+              : "Loaded workspace from local storage.",
+          );
         }
       } catch (error) {
         if (isMounted) {
@@ -244,11 +249,11 @@ export function V2Workspace() {
     setErrorMessage(null);
 
     try {
-      const sample = await repository.reset();
+      const sample = await repository.reset(createSampleV2Workspace());
       setWorkspace(sample);
       setIsDirty(false);
       setSaveState("saved");
-      setNotice("Reset workspace to sample data.");
+      setNotice("Loaded sample jobs, templates, prompts, and model endpoints.");
     } catch (error) {
       setSaveState("error");
       setErrorMessage(formatError(error));
@@ -355,7 +360,7 @@ export function V2Workspace() {
                   type="button"
                 >
                   <ArrowClockwise size={17} />
-                  Reset sample
+                  Load sample
                 </button>
                 <button
                   className={secondaryButtonClass}
@@ -526,6 +531,15 @@ function TemplatesPanel({
       title="Templates"
     >
       <div className="grid gap-4">
+        {templates.length === 0 ? (
+          <EmptyRecords
+            actionLabel="Add template"
+            description="Add KhurramsResume or another LaTeX template before mapping resume sections."
+            icon={Palette}
+            onAction={addTemplate}
+            title="No templates saved"
+          />
+        ) : null}
         {templates.map((template) => (
           <Item
             action={
@@ -665,6 +679,15 @@ function JobsPanel({
       title="Job Tracker"
     >
       <div className="grid gap-4">
+        {jobs.length === 0 ? (
+          <EmptyRecords
+            actionLabel="Add job"
+            description="Create a target role, paste the job link or description, then open Studio to tailor against it."
+            icon={Briefcase}
+            onAction={addJob}
+            title="No job targets saved"
+          />
+        ) : null}
         {jobs.map((job) => (
           <Item
             action={
@@ -848,6 +871,15 @@ function PromptsPanel({
       title="Prompt Profiles"
     >
       <div className="grid gap-4">
+        {prompts.length === 0 ? (
+          <EmptyRecords
+            actionLabel="Add prompt"
+            description="Create reusable AI instructions for truthful tailoring, review, or provider comparison."
+            icon={Robot}
+            onAction={addPrompt}
+            title="No prompt profiles saved"
+          />
+        ) : null}
         {prompts.map((prompt) => (
           <Item
             action={
@@ -994,6 +1026,15 @@ function ModelsPanel({
       title="Local Models"
     >
       <div className="grid gap-4">
+        {models.length === 0 ? (
+          <EmptyRecords
+            actionLabel="Add endpoint"
+            description="Register Ollama, LM Studio, or another local-compatible endpoint when you want offline model checks."
+            icon={Cpu}
+            onAction={addModel}
+            title="No local model endpoints"
+          />
+        ) : null}
         {models.map((model) => (
           <Item
             action={
@@ -1354,6 +1395,40 @@ function Metric({ label, value }: { label: string; value: number }) {
   );
 }
 
+function EmptyRecords({
+  actionLabel,
+  description,
+  icon: IconComponent,
+  onAction,
+  title,
+}: {
+  actionLabel: string;
+  description: string;
+  icon: Icon;
+  onAction: () => void;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-col gap-4 rounded-md border border-dashed border-zinc-300 bg-zinc-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 gap-3">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700">
+          <IconComponent size={22} />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-zinc-950">{title}</p>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-600">
+            {description}
+          </p>
+        </div>
+      </div>
+      <button className={secondaryButtonClass} onClick={onAction} type="button">
+        <Plus size={16} />
+        {actionLabel}
+      </button>
+    </div>
+  );
+}
+
 function InlineNotice({
   children,
   title,
@@ -1427,4 +1502,13 @@ function formatError(error: unknown) {
   return error instanceof Error
     ? error.message
     : "An unexpected workspace error occurred.";
+}
+
+function isWorkspaceEmpty(workspace: V2WorkspaceState) {
+  return (
+    workspace.templates.length === 0 &&
+    workspace.jobApplications.length === 0 &&
+    workspace.promptProfiles.length === 0 &&
+    workspace.localModelEndpoints.length === 0
+  );
 }

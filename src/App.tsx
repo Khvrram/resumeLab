@@ -196,6 +196,8 @@ export default function App() {
         />
       ) : workspaceMode === "editor" ? (
         <ResumeEditorWorkspace
+          onOpenProfile={() => setWorkspaceMode("profile")}
+          onOpenStudio={() => setWorkspaceMode("studio")}
           onSelectJob={handleSelectJob}
           selectedJobId={selectedJobId}
         />

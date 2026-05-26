@@ -38,15 +38,16 @@ import { createResumeDocumentRepository } from "../storage/resumeDocumentReposit
 import { createV2Repository } from "../storage/v2Repository";
 import {
   countVisibility,
+  createEmptyProfile,
   createEmptySkillGroup,
-  createSampleProfile,
+  isProfileEmpty,
   type ResumeProfile,
 } from "./profileTypes";
 import {
   loadProfileFromRepository,
   saveProfileToRepository,
 } from "./profileRepositoryAdapter";
-import { createSampleV2Workspace } from "../domain/v2";
+import { createEmptyV2Workspace } from "../domain/v2";
 import type { JobApplication, V2WorkspaceState } from "../domain/v2";
 
 type StudioSaveState = "idle" | "saving" | "saved" | "error";
@@ -138,7 +139,7 @@ export function ResumeStudioWorkspace({
           return;
         }
 
-        setProfile(loadedProfile ?? createSampleProfile());
+        setProfile(loadedProfile ?? createEmptyProfile());
         setWorkspace(loadedWorkspace);
         setAiConfigs(hydratedAiConfigs);
         setSelectedProviderId(
@@ -159,8 +160,8 @@ export function ResumeStudioWorkspace({
           return;
         }
 
-        const fallbackWorkspace = createSampleV2Workspace();
-        setProfile(createSampleProfile());
+        const fallbackWorkspace = createEmptyV2Workspace();
+        setProfile(createEmptyProfile());
         setWorkspace(fallbackWorkspace);
         const fallbackAiConfigs = await hydrateProviderSecretStatus(
           await aiSettingsRepository.loadProviderConfigs(),
@@ -659,22 +660,25 @@ export function ResumeStudioWorkspace({
   }
 
   const matchScore = draft.match.score;
-  const eligibleFacts =
-    (visibilityCounts?.eligible ?? 0) +
-    profile.experience.reduce(
-      (count, entry) =>
-        entry.visibility === "eligible"
-          ? count + entry.bullets.filter(Boolean).length
-          : count,
-      0,
-    ) +
-    profile.projects.reduce(
-      (count, entry) =>
-        entry.visibility === "eligible"
-          ? count + entry.bullets.filter(Boolean).length
-          : count,
-      0,
-    );
+  const profileIsEmpty = isProfileEmpty(profile);
+  const eligibleFacts = profileIsEmpty
+    ? 0
+    : (visibilityCounts?.eligible ?? 0) +
+      profile.experience.reduce(
+        (count, entry) =>
+          entry.visibility === "eligible"
+            ? count + entry.bullets.filter(Boolean).length
+            : count,
+        0,
+      ) +
+      profile.projects.reduce(
+        (count, entry) =>
+          entry.visibility === "eligible"
+            ? count + entry.bullets.filter(Boolean).length
+            : count,
+        0,
+      );
+  const hasEgressContext = !profileIsEmpty && egressPreview.trim().length > 0;
 
   return (
     <main className="min-h-[calc(100dvh-73px)] bg-[#f7f7f4] text-zinc-950">
@@ -696,7 +700,7 @@ export function ResumeStudioWorkspace({
               <FlowStep
                 detail={`${eligibleFacts} usable facts`}
                 icon={Database}
-                isActive
+                isActive={!profileIsEmpty}
                 label="Profile"
               />
               <FlowStep
@@ -708,13 +712,13 @@ export function ResumeStudioWorkspace({
               <FlowStep
                 detail={`${matchScore}/100 local match`}
                 icon={FileText}
-                isActive={matchScore > 0}
+                isActive={!profileIsEmpty && matchScore > 0}
                 label="Draft"
               />
               <FlowStep
                 detail="TXT and LaTeX"
                 icon={DownloadSimple}
-                isActive={plainText.length > 0}
+                isActive={!profileIsEmpty && plainText.length > 0}
                 label="Export"
               />
             </div>
@@ -755,6 +759,34 @@ export function ResumeStudioWorkspace({
             <Notice tone="error" title="Storage attention">
               {errorMessage}
             </Notice>
+          ) : null}
+
+          {profileIsEmpty ? (
+            <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-[0_18px_45px_-35px_rgba(24,24,27,0.35)]">
+              <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
+                    First run
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
+                    Start with your real profile facts.
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
+                    ResumeLab no longer seeds fictional resume data. Add your
+                    basics, experience, projects, education, and skills before
+                    generating drafts or sending AI context.
+                  </p>
+                </div>
+                <button
+                  className={primaryButtonClass}
+                  onClick={onOpenProfile}
+                  type="button"
+                >
+                  <Database size={17} />
+                  Add profile facts
+                </button>
+              </div>
+            </section>
           ) : null}
 
           <section className="rounded-lg border border-zinc-200 bg-white shadow-[0_18px_45px_-35px_rgba(24,24,27,0.35)]">
@@ -948,11 +980,23 @@ export function ResumeStudioWorkspace({
               </div>
             </div>
             <div className="p-4">
-              <textarea
-                className={`${textareaClass} min-h-[24rem] font-mono text-xs leading-5`}
-                readOnly
-                value={egressPreview}
-              />
+              {hasEgressContext ? (
+                <textarea
+                  className={`${textareaClass} min-h-[24rem] font-mono text-xs leading-5`}
+                  readOnly
+                  value={egressPreview}
+                />
+              ) : (
+                <div className="grid min-h-36 content-center rounded-md border border-dashed border-zinc-300 bg-zinc-50 p-4 text-center">
+                  <p className="text-sm font-semibold text-zinc-950">
+                    No AI context assembled yet
+                  </p>
+                  <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-zinc-500">
+                    Add profile facts and a target job before approving any
+                    outbound provider context.
+                  </p>
+                </div>
+              )}
               <div className="mt-3 grid gap-2">
                 <button
                   className={
@@ -960,7 +1004,7 @@ export function ResumeStudioWorkspace({
                       ? secondaryButtonClass
                       : primaryButtonClass
                   }
-                  disabled={!canUseDesktopAi || !selectedProvider}
+                  disabled={!canUseDesktopAi || !selectedProvider || !hasEgressContext}
                   onClick={approveCurrentEgress}
                   type="button"
                 >
@@ -970,8 +1014,9 @@ export function ResumeStudioWorkspace({
                     : "Approve this context"}
                 </button>
                 <p className="text-xs leading-5 text-zinc-500">
-                  Approval resets whenever the target, provider, model, base URL,
-                  or resume context changes.
+                  {hasEgressContext
+                    ? "Approval resets whenever the target, provider, model, base URL, or resume context changes."
+                    : "Context approval unlocks after real profile facts are available."}
                 </p>
               </div>
             </div>

@@ -10,14 +10,25 @@ import {
 } from "./profileRepository";
 
 describe("profileRepository", () => {
-  it("seeds the sample profile when nothing is stored", async () => {
+  it("seeds an empty user-owned profile when nothing is stored", async () => {
     const storage = new MemoryStorage();
     const repository = createProfileRepository(storage);
 
     const profile = await repository.load();
 
-    expect(profile).toEqual(createSampleProfile());
-    expect(readStoredProfile(storage)).toEqual(createSampleProfile());
+    expect(profile).toMatchObject({
+      basics: expect.objectContaining({
+        fullName: "",
+        headline: "",
+        email: "",
+      }),
+      education: [],
+      optionalSections: [],
+      projects: [],
+      skillGroups: [],
+      workExperiences: [],
+    });
+    expect(readStoredProfile(storage)).toEqual(profile);
   });
 
   it("loads an existing stored profile without reseeding", async () => {
@@ -50,7 +61,7 @@ describe("profileRepository", () => {
     expect(await repository.load()).toEqual(updatedProfile);
   });
 
-  it("resets storage back to the seeded sample profile", async () => {
+  it("resets storage back to an empty profile by default", async () => {
     const storage = new MemoryStorage();
     const repository = createProfileRepository(storage);
 
@@ -58,8 +69,22 @@ describe("profileRepository", () => {
 
     const resetProfile = await repository.reset();
 
-    expect(resetProfile).toEqual(createSampleProfile());
-    expect(readStoredProfile(storage)).toEqual(createSampleProfile());
+    expect(resetProfile.basics.fullName).toBe("");
+    expect(resetProfile.workExperiences).toEqual([]);
+    expect(readStoredProfile(storage)).toEqual(resetProfile);
+  });
+
+  it("can explicitly reset storage to a supplied sample profile", async () => {
+    const storage = new MemoryStorage();
+    const repository = createProfileRepository(storage);
+    const sampleProfile = createSampleProfile();
+
+    await repository.save(createCustomProfile());
+
+    const resetProfile = await repository.reset(sampleProfile);
+
+    expect(resetProfile).toEqual(sampleProfile);
+    expect(readStoredProfile(storage)).toEqual(sampleProfile);
   });
 
   it("exports the current profile as formatted JSON", async () => {

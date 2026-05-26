@@ -139,14 +139,7 @@ export const createEmptyProfile = (): ResumeProfile => ({
     phone: "",
     website: "",
     summary: "",
-    links: [
-      {
-        id: createProfileId("link"),
-        label: "",
-        url: "",
-        visibility: "eligible",
-      },
-    ],
+    links: [],
     visibility: "eligible",
   },
   experience: [],
@@ -839,8 +832,12 @@ export const isProfileEmpty = (profile: ResumeProfile) => {
   const basicsEmpty =
     !profile.basics.fullName.trim() &&
     !profile.basics.headline.trim() &&
+    !profile.basics.location.trim() &&
     !profile.basics.email.trim() &&
-    !profile.basics.summary.trim();
+    !profile.basics.phone.trim() &&
+    !profile.basics.website.trim() &&
+    !profile.basics.summary.trim() &&
+    profile.basics.links.every(isLinkEmpty);
 
   return (
     basicsEmpty &&
@@ -863,13 +860,96 @@ export const countVisibility = (profile: ResumeProfile) => {
     counts[visibility] += 1;
   };
 
-  add(profile.basics.visibility);
-  profile.basics.links.forEach((item) => add(item.visibility));
-  profile.experience.forEach((item) => add(item.visibility));
-  profile.projects.forEach((item) => add(item.visibility));
-  profile.education.forEach((item) => add(item.visibility));
-  profile.skills.forEach((item) => add(item.visibility));
-  profile.optionalSections.forEach((item) => add(item.visibility));
+  if (!isBasicsEmpty(profile.basics)) {
+    add(profile.basics.visibility);
+  }
+
+  profile.basics.links
+    .filter((item) => !isLinkEmpty(item))
+    .forEach((item) => add(item.visibility));
+  profile.experience
+    .filter((item) => !isExperienceEmpty(item))
+    .forEach((item) => add(item.visibility));
+  profile.projects
+    .filter((item) => !isProjectEmpty(item))
+    .forEach((item) => add(item.visibility));
+  profile.education
+    .filter((item) => !isEducationEmpty(item))
+    .forEach((item) => add(item.visibility));
+  profile.skills
+    .filter((item) => !isSkillGroupEmpty(item))
+    .forEach((item) => add(item.visibility));
+  profile.optionalSections
+    .filter((item) => !isOptionalSectionEmpty(item))
+    .forEach((item) => add(item.visibility));
 
   return counts;
 };
+
+function isBasicsEmpty(basics: ProfileBasics) {
+  return (
+    !basics.fullName.trim() &&
+    !basics.headline.trim() &&
+    !basics.location.trim() &&
+    !basics.email.trim() &&
+    !basics.phone.trim() &&
+    !basics.website.trim() &&
+    !basics.summary.trim() &&
+    basics.links.every(isLinkEmpty)
+  );
+}
+
+function isLinkEmpty(link: ProfileLink) {
+  return !link.label.trim() && !link.url.trim();
+}
+
+function isExperienceEmpty(entry: ExperienceEntry) {
+  return (
+    !entry.company.trim() &&
+    !entry.role.trim() &&
+    !entry.location.trim() &&
+    !entry.description.trim() &&
+    entry.bullets.every((bullet) => !bullet.trim()) &&
+    entry.technologies.length === 0
+  );
+}
+
+function isProjectEmpty(entry: ProjectEntry) {
+  return (
+    !entry.title.trim() &&
+    !entry.url.trim() &&
+    !entry.repository.trim() &&
+    !entry.description.trim() &&
+    entry.bullets.every((bullet) => !bullet.trim()) &&
+    entry.technologies.length === 0
+  );
+}
+
+function isEducationEmpty(entry: EducationEntry) {
+  return (
+    !entry.school.trim() &&
+    !entry.degree.trim() &&
+    !entry.field.trim() &&
+    !entry.location.trim() &&
+    !entry.notes.trim()
+  );
+}
+
+function isSkillGroupEmpty(entry: SkillGroup) {
+  return (
+    !entry.category.trim() &&
+    entry.skills.length === 0 &&
+    !entry.context.trim() &&
+    entry.relatedFactIds.length === 0
+  );
+}
+
+function isOptionalSectionEmpty(entry: OptionalSection) {
+  return (
+    !entry.title.trim() &&
+    !entry.organization.trim() &&
+    !entry.date.trim() &&
+    !entry.description.trim() &&
+    entry.bullets.every((bullet) => !bullet.trim())
+  );
+}

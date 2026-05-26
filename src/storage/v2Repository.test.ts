@@ -6,14 +6,19 @@ import {
 import { createV2Repository, V2_STORAGE_KEY } from "./v2Repository";
 
 describe("v2Repository", () => {
-  it("seeds the sample v2 workspace when nothing is stored", async () => {
+  it("seeds an empty user-owned workspace when nothing is stored", async () => {
     const storage = new MemoryStorage();
     const repository = createV2Repository(storage);
 
     const state = await repository.load();
 
-    expect(state).toEqual(createSampleV2Workspace());
-    expect(readStoredWorkspace(storage)).toEqual(createSampleV2Workspace());
+    expect(state).toMatchObject({
+      jobApplications: [],
+      localModelEndpoints: [],
+      promptProfiles: [],
+      templates: [],
+    });
+    expect(readStoredWorkspace(storage)).toEqual(state);
   });
 
   it("loads a saved workspace without reseeding", async () => {
@@ -51,7 +56,7 @@ describe("v2Repository", () => {
     expect(await repository.load()).toEqual(updatedState);
   });
 
-  it("resets storage back to the seeded sample workspace", async () => {
+  it("resets storage back to an empty workspace by default", async () => {
     const storage = new MemoryStorage();
     const repository = createV2Repository(storage);
 
@@ -59,8 +64,26 @@ describe("v2Repository", () => {
 
     const resetState = await repository.reset();
 
-    expect(resetState).toEqual(createSampleV2Workspace());
-    expect(readStoredWorkspace(storage)).toEqual(createSampleV2Workspace());
+    expect(resetState).toMatchObject({
+      jobApplications: [],
+      localModelEndpoints: [],
+      promptProfiles: [],
+      templates: [],
+    });
+    expect(readStoredWorkspace(storage)).toEqual(resetState);
+  });
+
+  it("can explicitly reset storage to a supplied sample workspace", async () => {
+    const storage = new MemoryStorage();
+    const repository = createV2Repository(storage);
+    const sampleWorkspace = createSampleV2Workspace();
+
+    await repository.save(createCustomWorkspace());
+
+    const resetState = await repository.reset(sampleWorkspace);
+
+    expect(resetState).toEqual(sampleWorkspace);
+    expect(readStoredWorkspace(storage)).toEqual(sampleWorkspace);
   });
 
   it("exports the current workspace as formatted JSON", async () => {

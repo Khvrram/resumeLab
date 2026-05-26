@@ -1,5 +1,5 @@
 import {
-  createSampleV2Workspace,
+  createEmptyV2Workspace,
   isV2WorkspaceState,
   type V2WorkspaceState,
 } from "../domain/v2";
@@ -10,7 +10,7 @@ export const V2_STORAGE_KEY = "resumelab.workspace.v2";
 export interface V2Repository {
   load(): Promise<V2WorkspaceState>;
   save(state: V2WorkspaceState): Promise<void>;
-  reset(): Promise<V2WorkspaceState>;
+  reset(state?: V2WorkspaceState): Promise<V2WorkspaceState>;
   exportJson(): Promise<string>;
 }
 
@@ -21,7 +21,7 @@ export function createV2Repository(
     const storedWorkspace = await storage.getItem(V2_STORAGE_KEY);
 
     if (storedWorkspace === null) {
-      const seededWorkspace = createSampleV2Workspace();
+      const seededWorkspace = createEmptyV2Workspace();
       await storage.setItem(
         V2_STORAGE_KEY,
         serializeWorkspace(seededWorkspace),
@@ -36,9 +36,11 @@ export function createV2Repository(
     await storage.setItem(V2_STORAGE_KEY, serializeWorkspace(state));
   }
 
-  async function reset(): Promise<V2WorkspaceState> {
-    await storage.removeItem(V2_STORAGE_KEY);
-    return load();
+  async function reset(
+    state: V2WorkspaceState = createEmptyV2Workspace(),
+  ): Promise<V2WorkspaceState> {
+    await save(state);
+    return cloneWorkspace(state);
   }
 
   async function exportJson(): Promise<string> {
