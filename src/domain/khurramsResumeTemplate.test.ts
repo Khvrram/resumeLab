@@ -6,6 +6,8 @@ import {
   parseResumePreviewFromLatex,
   parseResumePreviewFromText,
   renderKhurramsResumeLatex,
+  renderKhurramsResumePreviewLatex,
+  renderKhurramsResumePreviewText,
 } from "./khurramsResumeTemplate";
 
 describe("khurramsResumeTemplate", () => {
@@ -61,5 +63,36 @@ Sator | ESP32, Python
 
     expect(firstPage.length).toBeGreaterThan(0);
     expect(secondPage.length).toBeGreaterThan(0);
+  });
+
+  it("renders structured preview edits back to text and LaTeX", () => {
+    const preview = {
+      name: "Khurram Valiyev",
+      subtitle: "Software Engineer",
+      contact: "khurram@example.com",
+      sections: [
+        {
+          title: "Selected Projects",
+          blocks: [
+            {
+              heading: "ResumeLab",
+              meta: "React, TypeScript",
+              bullets: ["Built a local-first resume editor"],
+            },
+          ],
+        },
+      ],
+    };
+
+    const text = renderKhurramsResumePreviewText(preview);
+    const latex = renderKhurramsResumePreviewLatex(preview);
+
+    expect(text).toContain("SELECTED PROJECTS");
+    expect(text).toContain("ResumeLab | React, TypeScript");
+    expect(latex).toContain("\\section{Selected Projects}");
+    expect(latex).toContain("\\resumeProjectHeading");
+    expect(parseResumePreviewFromText(text).sections[0].title).toBe(
+      "Selected Projects",
+    );
   });
 });

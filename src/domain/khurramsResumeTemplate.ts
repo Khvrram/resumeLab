@@ -23,6 +23,39 @@ export function renderKhurramsResumeText(draft: ResumeDraft): string {
 }
 
 export function renderKhurramsResumeLatex(draft: ResumeDraft): string {
+  return renderKhurramsResumePreviewLatex({
+    name: draft.profileName || "Resume",
+    subtitle: "",
+    contact: draft.contactLine,
+    sections: draft.sections.map((section) => ({
+      title: section.title,
+      blocks: linesToBlocks(section.lines),
+    })),
+  });
+}
+
+export function renderKhurramsResumePreviewText(
+  document: ResumePreviewDocument,
+): string {
+  const headerLines = [document.name, document.subtitle, document.contact]
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const sectionLines = document.sections.flatMap((section) => [
+    "",
+    section.title.trim().toUpperCase(),
+    ...section.blocks.flatMap(renderPreviewBlockText),
+  ]);
+
+  return [...headerLines, ...sectionLines]
+    .map((line) => line.trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export function renderKhurramsResumePreviewLatex(
+  document: ResumePreviewDocument,
+): string {
   return `\\documentclass[letterpaper,11pt]{article}
 
 \\usepackage{latexsym}
@@ -95,13 +128,18 @@ export function renderKhurramsResumeLatex(draft: ResumeDraft): string {
 \\begin{document}
 
 \\begin{center}
-  {\\Huge \\scshape ${escapeLatex(draft.profileName || "Resume")}} \\\\ \\vspace{1pt}
-    \\small ${escapeLatex(draft.contactLine)}
+  {\\Huge \\scshape ${escapeLatex(document.name || "Resume")}} \\\\ \\vspace{1pt}
+    \\small ${escapeLatex(
+      [document.subtitle, document.contact]
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join(" | "),
+    )}
     \\vspace{-5pt}
 \\end{center}
 \\vspace{-1pt}
 
-${draft.sections.map(renderLatexSection).join("\n")}
+${document.sections.map(renderPreviewLatexSection).join("\n")}
 
 \\end{document}
 `;
@@ -220,19 +258,17 @@ export function paginateResumeSections(
   return [sections.slice(0, breakIndex), sections.slice(breakIndex)];
 }
 
-function renderLatexSection(section: ResumeDraft["sections"][number]): string {
-  if (section.id === "skills" || section.id === "summary") {
+function renderPreviewLatexSection(section: ResumePreviewSection): string {
+  if (/skills?|summary/i.test(section.title)) {
     return `\\section{${escapeLatex(section.title)}}
 \\resumeItemListStart
-${section.lines.map((line) => `  \\resumeItem{${escapeLatex(line)}}`).join("\n")}
+${section.blocks.flatMap(blockToSummaryLines).map((line) => `  \\resumeItem{${escapeLatex(line)}}`).join("\n")}
 \\resumeItemListEnd`;
   }
 
-  const blocks = linesToBlocks(section.lines);
-
   return `\\section{${escapeLatex(section.title)}}
 \\resumeSubHeadingListStart
-${blocks.map(renderLatexBlock).join("\n")}
+${section.blocks.map(renderLatexBlock).join("\n")}
 \\resumeSubHeadingListEnd`;
 }
 
@@ -264,6 +300,40 @@ function linesToBlocks(lines: string[]): ResumePreviewBlock[] {
   });
 
   return blocks;
+}
+
+function renderPreviewBlockText(block: ResumePreviewBlock): string[] {
+  const lines: string[] = [];
+  const heading = [block.heading, block.meta]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" | ");
+
+  if (heading) {
+    lines.push(heading);
+  }
+
+  block.bullets
+    .map((bullet) => bullet.trim())
+    .filter(Boolean)
+    .forEach((bullet) => lines.push(`- ${bullet}`));
+
+  return lines;
+}
+
+function blockToSummaryLines(block: ResumePreviewBlock): string[] {
+  const lines: string[] = [];
+
+  if (block.heading.trim()) {
+    lines.push(block.heading.trim());
+  }
+
+  block.bullets
+    .map((bullet) => bullet.trim())
+    .filter(Boolean)
+    .forEach((bullet) => lines.push(bullet));
+
+  return lines;
 }
 
 function createBlockFromHeading(line: string): ResumePreviewBlock {

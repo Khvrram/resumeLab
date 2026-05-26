@@ -9,14 +9,23 @@ import {
   DownloadSimple,
   FileText,
   FloppyDisk,
+  ListChecks,
+  Plus,
+  Trash,
+  ArrowUp,
+  ArrowDown,
   TextT,
+  type Icon,
 } from "@phosphor-icons/react";
 import {
   paginateResumeSections,
   parseResumePreviewFromLatex,
   parseResumePreviewFromText,
   renderKhurramsResumeLatex,
+  renderKhurramsResumePreviewLatex,
+  renderKhurramsResumePreviewText,
   renderKhurramsResumeText,
+  type ResumePreviewBlock,
   type ResumePreviewDocument,
   type ResumePreviewSection,
 } from "../domain/khurramsResumeTemplate";
@@ -52,13 +61,19 @@ type LiveResumeEditorProps = {
 };
 
 type EditorPane = "source" | "preview";
+type EditorMode = "sections" | ResumeDocumentMode;
 type ResumeExportKind = "pdf" | "docx" | "txt" | "tex";
 
 const modeOptions: Array<{
-  id: ResumeDocumentMode;
+  id: EditorMode;
   label: string;
-  icon: typeof TextT;
+  icon: Icon;
 }> = [
+  {
+    id: "sections",
+    label: "Sections",
+    icon: ListChecks,
+  },
   {
     id: "text",
     label: "Text",
@@ -79,6 +94,18 @@ const darkButtonClass =
 
 const lightButtonClass =
   "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+
+const compactLightButtonClass =
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-zinc-300 bg-white px-2.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+
+const dangerLightButtonClass =
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-red-200 bg-white px-2.5 text-xs font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px";
+
+const sectionIconButtonClass =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-600 transition hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-950 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-300";
+
+const sectionIconDangerButtonClass =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-red-200 bg-white text-red-600 transition hover:bg-red-50 active:translate-y-px";
 
 const saveButtonClass =
   "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-white px-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 active:translate-y-px disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500";
@@ -105,6 +132,7 @@ export function LiveResumeEditor({
   const generatedLatex = useMemo(() => renderKhurramsResumeLatex(draft), [draft]);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [activePane, setActivePane] = useState<EditorPane>("source");
+  const [activeEditMode, setActiveEditMode] = useState<EditorMode>("sections");
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
@@ -119,10 +147,10 @@ export function LiveResumeEditor({
 
   const preview = useMemo(
     () =>
-      document.mode === "latex"
+      activeEditMode === "latex"
         ? parseResumePreviewFromLatex(document.latexContent)
         : parseResumePreviewFromText(document.textContent),
-    [document.latexContent, document.mode, document.textContent],
+    [activeEditMode, document.latexContent, document.textContent],
   );
   const [firstPageSections, secondPageSections] = paginateResumeSections(
     preview.sections,
@@ -131,7 +159,7 @@ export function LiveResumeEditor({
   const exportPages = pages.filter((sections) => sections.length > 0);
   const activePageSections = pages[activePageIndex] ?? [];
   const activeSource =
-    document.mode === "latex" ? document.latexContent : document.textContent;
+    activeEditMode === "latex" ? document.latexContent : document.textContent;
   const selectedRevision = document.revisions.find(
     (revision) => revision.id === selectedRevisionId,
   );
@@ -271,6 +299,42 @@ export function LiveResumeEditor({
     setActivePageIndex((current) => Math.min(pages.length - 1, current + 1));
   };
 
+  const selectEditMode = (mode: EditorMode) => {
+    setActiveEditMode(mode);
+
+    if (mode === "text" || mode === "latex") {
+      onChange({ mode });
+    }
+  };
+
+  const updateStructuredPreview = (nextPreview: ResumePreviewDocument) => {
+    onChange({
+      mode: "text",
+      textContent: renderKhurramsResumePreviewText(nextPreview),
+      latexContent: renderKhurramsResumePreviewLatex(nextPreview),
+    });
+  };
+
+  const updateTextSource = (textContent: string) => {
+    const nextPreview = parseResumePreviewFromText(textContent);
+
+    onChange({
+      mode: "text",
+      textContent,
+      latexContent: renderKhurramsResumePreviewLatex(nextPreview),
+    });
+  };
+
+  const updateLatexSource = (latexContent: string) => {
+    const nextPreview = parseResumePreviewFromLatex(latexContent);
+
+    onChange({
+      mode: "latex",
+      latexContent,
+      textContent: renderKhurramsResumePreviewText(nextPreview),
+    });
+  };
+
   return (
     <section className="overflow-hidden rounded-lg border border-white/10 bg-[#111114] shadow-[0_34px_90px_-55px_rgba(0,0,0,0.95)]">
       <div className="grid gap-3 border-b border-white/10 bg-[#18181b] px-3 py-3 xl:grid-cols-[1fr_auto] xl:items-center">
@@ -292,12 +356,12 @@ export function LiveResumeEditor({
             <span className={toolbarLabelClass}>Edit</span>
             <div
               aria-label="Editor mode"
-              className="grid grid-cols-2 gap-1 rounded-md border border-white/10 bg-zinc-950 p-1"
+              className="grid grid-cols-3 gap-1 rounded-md border border-white/10 bg-zinc-950 p-1"
               role="tablist"
             >
               {modeOptions.map((option) => {
                 const IconComponent = option.icon;
-                const isActive = option.id === document.mode;
+                const isActive = option.id === activeEditMode;
 
                 return (
                   <button
@@ -308,7 +372,7 @@ export function LiveResumeEditor({
                         : "text-zinc-400 hover:bg-white/10 hover:text-white"
                     }`}
                     key={option.id}
-                    onClick={() => onChange({ mode: option.id })}
+                    onClick={() => selectEditMode(option.id)}
                     role="tab"
                     type="button"
                   >
@@ -420,30 +484,43 @@ export function LiveResumeEditor({
           <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-zinc-900">
-                {document.mode === "latex" ? "LaTeX source" : "Text source"}
+                {activeEditMode === "sections"
+                  ? "Structured sections"
+                  : activeEditMode === "latex"
+                    ? "LaTeX source"
+                    : "Text source"}
               </p>
             </div>
             <span className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 font-mono text-xs text-zinc-500">
-              {activeSource.split(/\r?\n/).length} lines
+              {activeEditMode === "sections"
+                ? `${preview.sections.length} sections`
+                : `${activeSource.split(/\r?\n/).length} lines`}
             </span>
           </div>
-          <Suspense fallback={<SourceEditorLoadingState />}>
-            <SourceCodeEditor
-              ariaLabel={
-                document.mode === "latex"
-                  ? "LaTeX resume source"
-                  : "Text resume source"
-              }
-              className="xl:min-h-[calc(100dvh-20.5rem)]"
-              language={document.mode === "latex" ? "latex" : "text"}
-              onChange={(event) =>
-                document.mode === "latex"
-                  ? onChange({ latexContent: event })
-                  : onChange({ textContent: event })
-              }
-              value={activeSource}
+          {activeEditMode === "sections" ? (
+            <StructuredResumeEditor
+              onChange={updateStructuredPreview}
+              preview={preview}
             />
-          </Suspense>
+          ) : (
+            <Suspense fallback={<SourceEditorLoadingState />}>
+              <SourceCodeEditor
+                ariaLabel={
+                  activeEditMode === "latex"
+                    ? "LaTeX resume source"
+                    : "Text resume source"
+                }
+                className="xl:min-h-[calc(100dvh-20.5rem)]"
+                language={activeEditMode === "latex" ? "latex" : "text"}
+                onChange={(event) =>
+                  activeEditMode === "latex"
+                    ? updateLatexSource(event)
+                    : updateTextSource(event)
+                }
+                value={activeSource}
+              />
+            </Suspense>
+          )}
 
           <div className="grid gap-3 border-t border-zinc-200 bg-white px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="flex items-center justify-between gap-3">
@@ -547,6 +624,414 @@ export function LiveResumeEditor({
         </section>
       </div>
     </section>
+  );
+}
+
+function StructuredResumeEditor({
+  onChange,
+  preview,
+}: {
+  onChange: (preview: ResumePreviewDocument) => void;
+  preview: ResumePreviewDocument;
+}) {
+  const [expandedSectionIndex, setExpandedSectionIndex] = useState(0);
+
+  useEffect(() => {
+    if (preview.sections.length === 0) {
+      setExpandedSectionIndex(0);
+      return;
+    }
+
+    setExpandedSectionIndex((current) =>
+      Math.min(current, preview.sections.length - 1),
+    );
+  }, [preview.sections.length]);
+
+  const updateHeader = (
+    patch: Partial<Pick<ResumePreviewDocument, "contact" | "name" | "subtitle">>,
+  ) => {
+    onChange({ ...preview, ...patch });
+  };
+
+  const updateSections = (sections: ResumePreviewSection[]) => {
+    onChange({ ...preview, sections });
+  };
+
+  const updateSection = (
+    sectionIndex: number,
+    updater: (section: ResumePreviewSection) => ResumePreviewSection,
+  ) => {
+    updateSections(
+      preview.sections.map((section, index) =>
+        index === sectionIndex ? updater(section) : section,
+      ),
+    );
+  };
+
+  const moveSection = (sectionIndex: number, direction: -1 | 1) => {
+    const nextIndex = sectionIndex + direction;
+
+    if (nextIndex < 0 || nextIndex >= preview.sections.length) {
+      return;
+    }
+
+    const sections = [...preview.sections];
+    const [section] = sections.splice(sectionIndex, 1);
+    sections.splice(nextIndex, 0, section);
+    updateSections(sections);
+    setExpandedSectionIndex((current) => {
+      if (current === sectionIndex) {
+        return nextIndex;
+      }
+
+      if (current === nextIndex) {
+        return sectionIndex;
+      }
+
+      return current;
+    });
+  };
+
+  const removeSection = (sectionIndex: number) => {
+    updateSections(preview.sections.filter((_, index) => index !== sectionIndex));
+    setExpandedSectionIndex((current) =>
+      current > sectionIndex ? current - 1 : Math.min(current, sectionIndex - 1),
+    );
+  };
+
+  const addSection = () => {
+    updateSections([
+      ...preview.sections,
+      {
+        title: "Additional",
+        blocks: [{ heading: "New item", meta: "", bullets: [""] }],
+      },
+    ]);
+    setExpandedSectionIndex(preview.sections.length);
+  };
+
+  const updateBlock = (
+    sectionIndex: number,
+    blockIndex: number,
+    patch: Partial<ResumePreviewBlock>,
+  ) => {
+    updateSection(sectionIndex, (section) => ({
+      ...section,
+      blocks: section.blocks.map((block, index) =>
+        index === blockIndex ? { ...block, ...patch } : block,
+      ),
+    }));
+  };
+
+  const addBlock = (sectionIndex: number) => {
+    updateSection(sectionIndex, (section) => ({
+      ...section,
+      blocks: [...section.blocks, { heading: "New item", meta: "", bullets: [""] }],
+    }));
+  };
+
+  const removeBlock = (sectionIndex: number, blockIndex: number) => {
+    updateSection(sectionIndex, (section) => ({
+      ...section,
+      blocks: section.blocks.filter((_, index) => index !== blockIndex),
+    }));
+  };
+
+  return (
+    <div className="min-h-[28rem] space-y-3 overflow-auto bg-[#f7f6f2] p-3 xl:max-h-[calc(100dvh-20.5rem)]">
+      <details className="group rounded-md border border-zinc-200 bg-white shadow-[0_14px_35px_-32px_rgba(24,24,27,0.7)]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 [&::-webkit-details-marker]:hidden">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-zinc-950">Resume header</p>
+            <p className="mt-0.5 truncate text-xs text-zinc-500">
+              {preview.name || "Unnamed resume"} /{" "}
+              {preview.contact || "No contact line"}
+            </p>
+          </div>
+          <CaretDown
+            className="shrink-0 text-zinc-500 transition group-open:rotate-180"
+            size={16}
+          />
+        </summary>
+        <div className="grid gap-3 border-t border-zinc-200 p-3 sm:grid-cols-2">
+          <StructuredInput
+            label="Name"
+            onChange={(name) => updateHeader({ name })}
+            value={preview.name}
+          />
+          <StructuredInput
+            label="Subtitle"
+            onChange={(subtitle) => updateHeader({ subtitle })}
+            value={preview.subtitle}
+          />
+          <label className="grid gap-2 text-sm sm:col-span-2">
+            <span className="font-medium text-zinc-700">Contact line</span>
+            <textarea
+              className="min-h-16 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-950 outline-none transition focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200"
+              onChange={(event) => updateHeader({ contact: event.target.value })}
+              value={preview.contact}
+            />
+          </label>
+        </div>
+      </details>
+
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-zinc-950">Resume sections</p>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            Edit the shared structure used by text, LaTeX, PDF, and DOCX.
+          </p>
+        </div>
+        <button className={lightButtonClass} onClick={addSection} type="button">
+          <Plus size={16} />
+          Add section
+        </button>
+      </div>
+
+      {preview.sections.length === 0 ? (
+        <div className="rounded-md border border-dashed border-zinc-300 bg-white p-5 text-center">
+          <p className="text-sm font-semibold text-zinc-950">
+            No sections in this draft
+          </p>
+          <button className={`${lightButtonClass} mt-3`} onClick={addSection} type="button">
+            <Plus size={16} />
+            Add first section
+          </button>
+        </div>
+      ) : null}
+
+      {preview.sections.map((section, sectionIndex) => {
+        const isExpanded = sectionIndex === expandedSectionIndex;
+        const sectionTitle = formatSectionTitle(section);
+
+        return (
+          <article
+            className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-[0_14px_30px_-28px_rgba(24,24,27,0.55)]"
+            key={`${section.title}-${sectionIndex}`}
+          >
+            <div
+              className={`grid gap-2 border-b border-zinc-200 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${
+                isExpanded ? "bg-white" : "bg-zinc-50"
+              }`}
+            >
+              {isExpanded ? (
+                <label className="grid min-w-0 gap-1.5 text-sm">
+                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                    Section
+                  </span>
+                  <input
+                    aria-label="Section title"
+                    className="h-9 rounded-md border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-950 outline-none transition focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200"
+                    onChange={(event) =>
+                      updateSection(sectionIndex, (current) => ({
+                        ...current,
+                        title: event.target.value,
+                      }))
+                    }
+                    value={section.title}
+                  />
+                </label>
+              ) : (
+                <button
+                  className="grid min-h-10 min-w-0 content-center rounded-md px-1 text-left transition hover:text-zinc-700 active:translate-y-px"
+                  onClick={() => setExpandedSectionIndex(sectionIndex)}
+                  type="button"
+                >
+                  <span className="truncate text-sm font-semibold text-zinc-950">
+                    {sectionTitle}
+                  </span>
+                  <span className="text-xs text-zinc-500">
+                    {formatBlockCount(section.blocks.length)}
+                  </span>
+                </button>
+              )}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="hidden rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-500 sm:inline-flex">
+                  {formatBlockCount(section.blocks.length)}
+                </span>
+                <button
+                  aria-label={`${isExpanded ? "Collapse" : "Expand"} ${sectionTitle}`}
+                  className={sectionIconButtonClass}
+                  onClick={() =>
+                    setExpandedSectionIndex(isExpanded ? -1 : sectionIndex)
+                  }
+                  title={isExpanded ? "Collapse section" : "Edit section"}
+                  type="button"
+                >
+                  <CaretDown
+                    className={`transition ${isExpanded ? "rotate-180" : ""}`}
+                    size={15}
+                  />
+                </button>
+                <button
+                  aria-label={`Move ${sectionTitle} up`}
+                  className={sectionIconButtonClass}
+                  disabled={sectionIndex === 0}
+                  onClick={() => moveSection(sectionIndex, -1)}
+                  title="Move up"
+                  type="button"
+                >
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  aria-label={`Move ${sectionTitle} down`}
+                  className={sectionIconButtonClass}
+                  disabled={sectionIndex === preview.sections.length - 1}
+                  onClick={() => moveSection(sectionIndex, 1)}
+                  title="Move down"
+                  type="button"
+                >
+                  <ArrowDown size={14} />
+                </button>
+                <button
+                  aria-label={`Remove ${sectionTitle}`}
+                  className={sectionIconDangerButtonClass}
+                  onClick={() => removeSection(sectionIndex)}
+                  title="Remove section"
+                  type="button"
+                >
+                  <Trash size={14} />
+                </button>
+              </div>
+            </div>
+
+            {isExpanded ? (
+              <div className="grid gap-3 p-3">
+                {section.blocks.map((block, blockIndex) => {
+                  const isSimpleBlock =
+                    isSimpleTextSection(section.title) &&
+                    !block.meta &&
+                    block.bullets.length === 0;
+
+                  return (
+                    <div
+                      className="grid gap-3 rounded-md border border-zinc-200 bg-[#fbfaf7] p-3"
+                      key={`${block.heading}-${blockIndex}`}
+                    >
+                      {isSimpleBlock ? (
+                        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                          <label className="grid gap-2 text-sm">
+                            <span className="font-medium text-zinc-700">
+                              {getSimpleLineLabel(section.title)}
+                            </span>
+                            <textarea
+                              className="min-h-20 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-950 outline-none transition focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200"
+                              onChange={(event) =>
+                                updateBlock(sectionIndex, blockIndex, {
+                                  bullets: [],
+                                  heading: event.target.value,
+                                  meta: "",
+                                })
+                              }
+                              value={block.heading}
+                            />
+                          </label>
+                          <button
+                            className={dangerLightButtonClass}
+                            onClick={() => removeBlock(sectionIndex, blockIndex)}
+                            type="button"
+                          >
+                            <Trash size={14} />
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_auto] sm:items-end">
+                            <StructuredInput
+                              label="Heading"
+                              onChange={(heading) =>
+                                updateBlock(sectionIndex, blockIndex, { heading })
+                              }
+                              value={block.heading}
+                            />
+                            <StructuredInput
+                              label="Meta"
+                              onChange={(meta) =>
+                                updateBlock(sectionIndex, blockIndex, { meta })
+                              }
+                              value={block.meta}
+                            />
+                            <button
+                              className={dangerLightButtonClass}
+                              onClick={() => removeBlock(sectionIndex, blockIndex)}
+                              type="button"
+                            >
+                              <Trash size={14} />
+                              Remove
+                            </button>
+                          </div>
+                          <label className="grid gap-2 text-sm">
+                            <span className="font-medium text-zinc-700">
+                              Bullets, one per line
+                            </span>
+                            <textarea
+                              className="min-h-24 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-950 outline-none transition focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200"
+                              onChange={(event) =>
+                                updateBlock(sectionIndex, blockIndex, {
+                                  bullets: textToLines(event.target.value),
+                                })
+                              }
+                              value={block.bullets.join("\n")}
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <button
+                  className={compactLightButtonClass}
+                  onClick={() => addBlock(sectionIndex)}
+                  type="button"
+                >
+                  <Plus size={14} />
+                  Add item
+                </button>
+              </div>
+            ) : null}
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function formatSectionTitle(section: ResumePreviewSection) {
+  return section.title.trim() || "Untitled section";
+}
+
+function formatBlockCount(count: number) {
+  return `${count} ${count === 1 ? "item" : "items"}`;
+}
+
+function isSimpleTextSection(title: string) {
+  return /summary|skills/i.test(title);
+}
+
+function getSimpleLineLabel(sectionTitle: string) {
+  return /summary/i.test(sectionTitle) ? "Summary text" : "Line";
+}
+
+function StructuredInput({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <label className="grid gap-2 text-sm">
+      <span className="font-medium text-zinc-700">{label}</span>
+      <input
+        className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      />
+    </label>
   );
 }
 
@@ -749,4 +1234,11 @@ function formatExportError(error: unknown) {
 
 function formatRevisionCount(count: number) {
   return `${count} saved ${count === 1 ? "checkpoint" : "checkpoints"}`;
+}
+
+function textToLines(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
