@@ -301,7 +301,7 @@ export function ResumeEditorWorkspace({
   const isStale = activeDocument.sourceProfileUpdatedAt !== profile.updatedAt;
 
   return (
-    <main className="min-h-[calc(100dvh-65px)] bg-zinc-950 text-white">
+    <main className="min-h-[calc(100dvh-57px)] bg-zinc-950 text-white">
       <div className="mx-auto grid max-w-[1720px] gap-3 px-3 py-3 sm:px-5">
         <section className="grid gap-4 rounded-lg border border-white/10 bg-[#161619] px-4 py-3 shadow-[0_22px_70px_-48px_rgba(0,0,0,0.95)] lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-end">
           <div className="min-w-0">
@@ -419,20 +419,16 @@ function EditorEmptyState({
   onOpenStudio: () => void;
 }) {
   return (
-    <main className="min-h-[calc(100dvh-65px)] bg-zinc-950 text-white">
+    <main className="min-h-[calc(100dvh-57px)] bg-zinc-950 text-white">
       <div className="mx-auto grid max-w-[1120px] gap-5 px-4 py-6 sm:px-6">
         <section className="grid min-h-[34rem] content-center gap-6 rounded-lg border border-white/10 bg-[#161619] p-6 shadow-[0_34px_90px_-55px_rgba(0,0,0,0.95)] sm:p-10">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-zinc-300">
-              KhurramsResume
-            </span>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Create profile facts before editing a resume.
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Ready to build your resume
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
-              The editor only creates resume drafts from saved local facts. Add
-              your basics, experience, projects, education, and skills first, or
-              create a target job in Studio.
+              Add your career facts to the Profile Vault first, then come back here to edit
+              your resume with a live preview. You can also set up a target job in Studio.
             </p>
           </div>
 
@@ -490,7 +486,7 @@ function Notice({
 
 function EditorLoadingState() {
   return (
-    <main className="min-h-[calc(100dvh-65px)] bg-[#0d0d0f] p-4 sm:p-6">
+    <main className="min-h-[calc(100dvh-57px)] bg-[#0d0d0f] p-4 sm:p-6">
       <div className="mx-auto grid max-w-[1720px] gap-4">
         <div className="h-24 animate-pulse rounded-lg bg-white/10" />
         <div className="h-[calc(100dvh-12rem)] min-h-[42rem] animate-pulse rounded-lg bg-white/10" />
@@ -581,4 +577,6 @@ function formatError(error: unknown) {
     ? error.message
     : "An unexpected editor error occurred.";
 }
+
+
 

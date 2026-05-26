@@ -437,7 +437,7 @@ function WorkspaceSidebar({
   visibilityCounts: Record<VisibilityStatus, number> | null;
 }) {
   return (
-    <aside className="flex shrink-0 flex-col border-b border-zinc-200 bg-zinc-900 text-zinc-100 lg:w-64 lg:border-b-0 lg:border-r">
+    <aside className="flex shrink-0 flex-col border-b border-zinc-200 bg-[#1c1c20] text-zinc-100 lg:w-64 lg:border-b-0 lg:border-r">
       <div className="flex items-center justify-between gap-4 px-4 py-4 lg:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-800">
@@ -483,7 +483,7 @@ function WorkspaceSidebar({
         })}
       </nav>
 
-      <div className="mt-auto hidden border-t border-zinc-800 p-5 lg:block">
+      <div className="mt-auto hidden border-t border-white/[0.06] p-5 lg:block">
         <div className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-zinc-500">
           <Database size={15} />
           Fact status
@@ -499,7 +499,7 @@ function WorkspaceSidebar({
             value={visibilityCounts?.excluded ?? 0}
           />
         </div>
-        <div className="mt-5 flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 p-3 text-xs leading-5 text-zinc-400">
+        <div className="mt-5 flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] p-3 text-xs leading-5 text-zinc-400">
           <CloudSlash className="shrink-0 text-zinc-300" size={18} />
           Core profile editing stays local unless a later AI flow is explicitly approved.
         </div>
@@ -1987,26 +1987,26 @@ function EmptyProfileBanner({
   onResetSampleData: () => void;
 }) {
   return (
-    <section className="rounded-md border border-dashed border-zinc-300 bg-white p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-zinc-950 text-white">
-            <ListChecks size={22} />
+    <section className="rounded-xl border border-dashed border-zinc-300 bg-gradient-to-b from-white to-zinc-50 p-6">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white">
+            <ListChecks size={24} />
           </div>
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-zinc-950">
-              No profile facts saved
+            <h2 className="text-lg font-semibold text-zinc-900">
+              Welcome to your Profile Vault
             </h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-600">
-              Start with basics, then add experience, projects, education, and
-              skills as verified source facts.
+            <p className="mt-1 max-w-xl text-sm leading-6 text-zinc-500">
+              Start by filling in your contact info and work history. Every fact you add here becomes
+              a building block for tailored resumes. Try loading sample data to explore.
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <button className={secondaryButtonClass} onClick={onAddBasics} type="button">
             <IdentificationCard size={16} />
-            Edit basics
+            Start with basics
           </button>
           <button
             className={primaryButtonClass}
@@ -2197,3 +2197,5 @@ function BackupRestoreButtons({ isLoading }: { isLoading: boolean }) {
     </div>
   );
 }
+
+

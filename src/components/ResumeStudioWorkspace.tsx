@@ -677,10 +677,10 @@ export function ResumeStudioWorkspace({
   const hasEgressContext = !profileIsEmpty && egressPreview.trim().length > 0;
 
   return (
-    <main className="min-h-[calc(100dvh-73px)] bg-zinc-50 text-zinc-950">
+    <main className="min-h-[calc(100dvh-57px)] bg-zinc-50 text-zinc-950">
       <div className="mx-auto grid max-w-[1500px] gap-5 px-4 py-5 sm:px-6 xl:grid-cols-[18rem_minmax(0,1fr)_23rem]">
         <aside className="grid content-start gap-4">
-          <section className="rounded-lg border border-zinc-200 bg-zinc-950 p-4 text-white shadow-[0_18px_45px_-30px_rgba(24,24,27,0.45)]">
+          <section className="rounded-lg border border-zinc-200 bg-zinc-900 p-4 text-white shadow-[0_18px_45px_-30px_rgba(24,24,27,0.45)]">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
@@ -1560,7 +1560,7 @@ function Notice({
 
 function StudioLoadingState() {
   return (
-    <main className="min-h-[calc(100dvh-73px)] bg-zinc-50 p-5">
+    <main className="min-h-[calc(100dvh-57px)] bg-zinc-50 p-5">
       <div className="mx-auto grid max-w-[1500px] gap-5 xl:grid-cols-[18rem_minmax(0,1fr)_23rem]">
         <div className="h-96 animate-pulse rounded-lg bg-zinc-200" />
         <div className="h-[38rem] animate-pulse rounded-lg bg-white" />
@@ -1639,4 +1639,6 @@ function formatError(error: unknown) {
     ? error.message
     : "An unexpected studio error occurred.";
 }
+
+
 
