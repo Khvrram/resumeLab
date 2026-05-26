@@ -1,6 +1,15 @@
-const { app, BrowserWindow, ipcMain, safeStorage, shell } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  safeStorage,
+  shell,
+} = require("electron");
+const fs = require("node:fs/promises");
 const path = require("node:path");
 const { generateTailoringProposal } = require("./aiProviders.cjs");
+const { saveResumeArtifact } = require("./fileExports.cjs");
 const { createSecretStore, validateProviderSecretId } = require("./secrets.cjs");
 const { createDesktopJsonStore, validateKey } = require("./storage.cjs");
 
@@ -97,6 +106,13 @@ ipcMain.handle("ai:generate-tailoring-proposal", async (_event, request) =>
   generateTailoringProposal(request, (providerId) =>
     getSecretStore().getProviderKey(providerId),
   ),
+);
+
+ipcMain.handle("files:save-resume-artifact", (_event, request) =>
+  saveResumeArtifact(request, {
+    showSaveDialog: (options) => dialog.showSaveDialog(options),
+    writeFile: (filePath, buffer) => fs.writeFile(filePath, buffer),
+  }),
 );
 
 app.whenReady().then(() => {

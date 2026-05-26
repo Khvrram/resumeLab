@@ -52,6 +52,7 @@ type LiveResumeEditorProps = {
 };
 
 type EditorPane = "source" | "preview";
+type ResumeExportKind = "pdf" | "docx" | "txt" | "tex";
 
 const modeOptions: Array<{
   id: ResumeDocumentMode;
@@ -105,6 +106,8 @@ export function LiveResumeEditor({
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [activePane, setActivePane] = useState<EditorPane>("source");
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [selectedRevisionId, setSelectedRevisionId] = useState(
     document.revisions[0]?.id ?? "",
   );
@@ -135,40 +138,129 @@ export function LiveResumeEditor({
   const isGeneratedTextCurrent =
     document.textContent === generatedText && document.latexContent === generatedLatex;
 
-  const exportText = () => {
-    downloadTextFile(
-      createResumeFileName(profile, "txt"),
-      document.textContent,
-      "text/plain",
-    );
-    setIsExportMenuOpen(false);
+  const exportText = async () => {
+    await saveTextArtifact({
+      contents: document.textContent,
+      fileName: createResumeFileName(profile, "txt"),
+      kind: "txt",
+      label: "TXT",
+      mimeType: "text/plain",
+    });
   };
 
-  const exportLatex = () => {
-    downloadTextFile(
-      createResumeFileName(profile, "tex"),
-      document.latexContent,
-      "application/x-tex",
-    );
-    setIsExportMenuOpen(false);
+  const exportLatex = async () => {
+    await saveTextArtifact({
+      contents: document.latexContent,
+      fileName: createResumeFileName(profile, "tex"),
+      kind: "tex",
+      label: "LaTeX",
+      mimeType: "application/x-tex",
+    });
   };
 
-  const exportPdf = () => {
-    downloadBinaryFile(
-      createResumeFileName(profile, "pdf"),
-      createResumePdfBytes(preview, exportPages),
-      "application/pdf",
-    );
-    setIsExportMenuOpen(false);
+  const exportPdf = async () => {
+    await saveBinaryArtifact({
+      contents: createResumePdfBytes(preview, exportPages),
+      fileName: createResumeFileName(profile, "pdf"),
+      kind: "pdf",
+      label: "PDF",
+      mimeType: "application/pdf",
+    });
   };
 
-  const exportDocx = () => {
-    downloadBinaryFile(
-      createResumeFileName(profile, "docx"),
-      createResumeDocxBytes(preview, exportPages),
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    );
+  const exportDocx = async () => {
+    await saveBinaryArtifact({
+      contents: createResumeDocxBytes(preview, exportPages),
+      fileName: createResumeFileName(profile, "docx"),
+      kind: "docx",
+      label: "DOCX",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+  };
+
+  const saveTextArtifact = async ({
+    contents,
+    fileName,
+    kind,
+    label,
+    mimeType,
+  }: {
+    contents: string;
+    fileName: string;
+    kind: ResumeExportKind;
+    label: string;
+    mimeType: string;
+  }) => {
+    await saveArtifact({
+      fallback: () => downloadTextFile(fileName, contents, mimeType),
+      label,
+      request: {
+        defaultFileName: fileName,
+        kind,
+        textContent: contents,
+      },
+    });
+  };
+
+  const saveBinaryArtifact = async ({
+    contents,
+    fileName,
+    kind,
+    label,
+    mimeType,
+  }: {
+    contents: Uint8Array;
+    fileName: string;
+    kind: ResumeExportKind;
+    label: string;
+    mimeType: string;
+  }) => {
+    await saveArtifact({
+      fallback: () => downloadBinaryFile(fileName, contents, mimeType),
+      label,
+      request: {
+        contentBase64: bytesToBase64(contents),
+        defaultFileName: fileName,
+        kind,
+      },
+    });
+  };
+
+  const saveArtifact = async ({
+    fallback,
+    label,
+    request,
+  }: {
+    fallback: () => void;
+    label: string;
+    request: Parameters<
+      NonNullable<NonNullable<Window["resumelab"]>["files"]>["saveResumeArtifact"]
+    >[0];
+  }) => {
+    setExportError(null);
+    setExportStatus(null);
     setIsExportMenuOpen(false);
+
+    const saveResumeArtifact = window.resumelab?.files?.saveResumeArtifact;
+
+    try {
+      if (saveResumeArtifact) {
+        const result = await saveResumeArtifact(request);
+
+        setExportStatus(
+          result.canceled
+            ? `${label} export canceled.`
+            : `${label} saved to ${result.filePath}.`,
+        );
+        return;
+      }
+
+      fallback();
+      setExportStatus(`${label} downloaded through the browser preview.`);
+    } catch (error) {
+      setExportError(formatExportError(error));
+    }
   };
 
   const goToPreviousPage = () => {
@@ -300,6 +392,24 @@ export function LiveResumeEditor({
           </div>
         </div>
       </div>
+
+      {exportStatus ? (
+        <div
+          className="border-b border-emerald-300/20 bg-emerald-200/10 px-4 py-2 text-sm text-emerald-100"
+          role="status"
+        >
+          {exportStatus}
+        </div>
+      ) : null}
+
+      {exportError ? (
+        <div
+          className="border-b border-red-300/25 bg-red-200/10 px-4 py-2 text-sm text-red-100"
+          role="alert"
+        >
+          {exportError}
+        </div>
+      ) : null}
 
       <div className="grid min-w-0 xl:min-h-[calc(100dvh-15.75rem)] xl:grid-cols-[minmax(25rem,0.9fr)_minmax(42rem,1.1fr)]">
         <section
@@ -596,6 +706,17 @@ function downloadBinaryFile(
   downloadBlob(fileName, blob);
 }
 
+function bytesToBase64(contents: Uint8Array) {
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let index = 0; index < contents.length; index += chunkSize) {
+    binary += String.fromCharCode(...contents.subarray(index, index + chunkSize));
+  }
+
+  return window.btoa(binary);
+}
+
 function downloadBlob(fileName: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -618,6 +739,12 @@ function formatRevisionDate(value: string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function formatExportError(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "Resume export failed. Try another destination.";
 }
 
 function formatRevisionCount(count: number) {

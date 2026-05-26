@@ -6,6 +6,10 @@ contextBridge.exposeInMainWorld("resumelab", {
       ipcRenderer.invoke("ai:generate-tailoring-proposal", request),
   },
   getRuntime: () => ipcRenderer.invoke("app:get-runtime"),
+  files: {
+    saveResumeArtifact: (request) =>
+      ipcRenderer.invoke("files:save-resume-artifact", request),
+  },
   secrets: {
     deleteProviderKey: (providerId) =>
       ipcRenderer.invoke("secrets:delete-provider-key", providerId),

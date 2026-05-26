@@ -9,6 +9,17 @@ interface Window {
       storageMode: string;
       version: string;
     }>;
+    files?: {
+      saveResumeArtifact: (request: {
+        contentBase64?: string;
+        defaultFileName: string;
+        kind: "pdf" | "docx" | "txt" | "tex";
+        textContent?: string;
+      }) => Promise<{
+        canceled: boolean;
+        filePath: string | null;
+      }>;
+    };
     ai?: {
       generateTailoringProposal: (request: {
         baseUrl: string;
