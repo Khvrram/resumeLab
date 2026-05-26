@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import {
   ArrowClockwise,
+  CaretDown,
   CaretLeft,
   CaretRight,
   ClockCounterClockwise,
@@ -30,6 +31,12 @@ import {
   type ResumeDocumentMode,
 } from "../domain/resumeDocuments";
 import type { ResumeProfile } from "./profileTypes";
+
+const SourceCodeEditor = lazy(() =>
+  import("./SourceCodeEditor").then((module) => ({
+    default: module.SourceCodeEditor,
+  })),
+);
 
 type LiveResumeEditorProps = {
   document: ResumeDocument;
@@ -75,6 +82,12 @@ const lightButtonClass =
 const saveButtonClass =
   "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-white px-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 active:translate-y-px disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500";
 
+const toolbarGroupClass =
+  "flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-white/10 bg-zinc-950/65 p-1.5";
+
+const toolbarLabelClass =
+  "hidden px-1.5 text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-zinc-500 md:inline";
+
 export function LiveResumeEditor({
   document,
   draft,
@@ -91,6 +104,7 @@ export function LiveResumeEditor({
   const generatedLatex = useMemo(() => renderKhurramsResumeLatex(draft), [draft]);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [activePane, setActivePane] = useState<EditorPane>("source");
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [selectedRevisionId, setSelectedRevisionId] = useState(
     document.revisions[0]?.id ?? "",
   );
@@ -115,10 +129,6 @@ export function LiveResumeEditor({
   const activePageSections = pages[activePageIndex] ?? [];
   const activeSource =
     document.mode === "latex" ? document.latexContent : document.textContent;
-  const editorClass =
-    document.mode === "latex"
-      ? "min-h-[32rem] w-full resize-none bg-[#111114] px-4 py-4 font-mono text-xs leading-5 text-zinc-100 outline-none placeholder:text-zinc-500 xl:min-h-[calc(100dvh-20.5rem)]"
-      : "min-h-[32rem] w-full resize-none bg-[#fbfaf7] px-4 py-4 font-mono text-sm leading-6 text-zinc-950 outline-none placeholder:text-zinc-400 xl:min-h-[calc(100dvh-20.5rem)]";
   const selectedRevision = document.revisions.find(
     (revision) => revision.id === selectedRevisionId,
   );
@@ -131,6 +141,7 @@ export function LiveResumeEditor({
       document.textContent,
       "text/plain",
     );
+    setIsExportMenuOpen(false);
   };
 
   const exportLatex = () => {
@@ -139,6 +150,7 @@ export function LiveResumeEditor({
       document.latexContent,
       "application/x-tex",
     );
+    setIsExportMenuOpen(false);
   };
 
   const exportPdf = () => {
@@ -147,6 +159,7 @@ export function LiveResumeEditor({
       createResumePdfBytes(preview, exportPages),
       "application/pdf",
     );
+    setIsExportMenuOpen(false);
   };
 
   const exportDocx = () => {
@@ -155,6 +168,7 @@ export function LiveResumeEditor({
       createResumeDocxBytes(preview, exportPages),
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     );
+    setIsExportMenuOpen(false);
   };
 
   const goToPreviousPage = () => {
@@ -181,104 +195,109 @@ export function LiveResumeEditor({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 xl:justify-end">
-          <div
-            aria-label="Editor mode"
-            className="grid grid-cols-2 gap-1 rounded-md border border-white/10 bg-zinc-950 p-1"
-            role="tablist"
-          >
-            {modeOptions.map((option) => {
-              const IconComponent = option.icon;
-              const isActive = option.id === document.mode;
+        <div className="grid gap-2 xl:justify-items-end">
+          <div className={toolbarGroupClass}>
+            <span className={toolbarLabelClass}>Edit</span>
+            <div
+              aria-label="Editor mode"
+              className="grid grid-cols-2 gap-1 rounded-md border border-white/10 bg-zinc-950 p-1"
+              role="tablist"
+            >
+              {modeOptions.map((option) => {
+                const IconComponent = option.icon;
+                const isActive = option.id === document.mode;
 
-              return (
-                <button
-                  aria-selected={isActive}
-                  className={`inline-flex h-8 min-w-20 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition active:translate-y-px ${
-                    isActive
-                      ? "bg-white text-zinc-950 shadow-sm"
-                      : "text-zinc-400 hover:bg-white/10 hover:text-white"
-                  }`}
-                  key={option.id}
-                  onClick={() => onChange({ mode: option.id })}
-                  role="tab"
-                  type="button"
-                >
-                  <IconComponent size={14} />
-                  {option.label}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    aria-selected={isActive}
+                    className={`inline-flex h-8 min-w-20 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition active:translate-y-px ${
+                      isActive
+                        ? "bg-white text-zinc-950 shadow-sm"
+                        : "text-zinc-400 hover:bg-white/10 hover:text-white"
+                    }`}
+                    key={option.id}
+                    onClick={() => onChange({ mode: option.id })}
+                    role="tab"
+                    type="button"
+                  >
+                    <IconComponent size={14} />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div
+              aria-label="Editor pane"
+              className="grid grid-cols-2 gap-1 rounded-md border border-white/10 bg-zinc-950 p-1 xl:hidden"
+              role="tablist"
+            >
+              <PaneButton
+                isActive={activePane === "source"}
+                label="Source"
+                onClick={() => setActivePane("source")}
+              />
+              <PaneButton
+                isActive={activePane === "preview"}
+                label="Preview"
+                onClick={() => setActivePane("preview")}
+              />
+            </div>
           </div>
-          <div
-            aria-label="Editor pane"
-            className="grid grid-cols-2 gap-1 rounded-md border border-white/10 bg-zinc-950 p-1 xl:hidden"
-            role="tablist"
-          >
-            <PaneButton
-              isActive={activePane === "source"}
-              label="Source"
-              onClick={() => setActivePane("source")}
-            />
-            <PaneButton
-              isActive={activePane === "preview"}
-              label="Preview"
-              onClick={() => setActivePane("preview")}
-            />
+
+          <div className={toolbarGroupClass}>
+            <span className={toolbarLabelClass}>Draft</span>
+            <button
+              className={saveButtonClass}
+              disabled={!isDirty || saveState === "saving"}
+              onClick={onSave}
+              type="button"
+            >
+              {saveState === "saving" ? (
+                <ArrowClockwise className="animate-spin" size={16} />
+              ) : (
+                <FloppyDisk size={16} />
+              )}
+              Save
+            </button>
+            <button
+              className={secondaryButtonClass}
+              onClick={onRefreshFromFacts}
+              type="button"
+            >
+              <ArrowClockwise size={16} />
+              Regenerate
+            </button>
+            <button
+              className={secondaryButtonClass}
+              onClick={onCheckpoint}
+              type="button"
+            >
+              <ClockCounterClockwise size={16} />
+              Checkpoint
+            </button>
+
+            <div className="relative">
+              <button
+                aria-expanded={isExportMenuOpen}
+                className={secondaryButtonClass}
+                onClick={() => setIsExportMenuOpen((isOpen) => !isOpen)}
+                type="button"
+              >
+                <DownloadSimple size={16} />
+                Export
+                <CaretDown size={14} />
+              </button>
+
+              {isExportMenuOpen ? (
+                <div className="absolute right-0 top-11 z-20 grid min-w-44 gap-1 rounded-lg border border-white/10 bg-zinc-950 p-1.5 shadow-[0_24px_70px_-38px_rgba(0,0,0,0.95)]">
+                  <ExportMenuButton label="PDF" onClick={exportPdf} />
+                  <ExportMenuButton label="DOCX" onClick={exportDocx} />
+                  <ExportMenuButton label="TXT" onClick={exportText} />
+                  <ExportMenuButton label="LaTeX" onClick={exportLatex} />
+                </div>
+              ) : null}
+            </div>
           </div>
-          <button
-            className={secondaryButtonClass}
-            onClick={onRefreshFromFacts}
-            type="button"
-          >
-            <ArrowClockwise size={16} />
-            Regenerate
-          </button>
-          <button className={secondaryButtonClass} onClick={onCheckpoint} type="button">
-            <ClockCounterClockwise size={16} />
-            Checkpoint
-          </button>
-          <button
-            className={saveButtonClass}
-            disabled={!isDirty || saveState === "saving"}
-            onClick={onSave}
-            type="button"
-          >
-            {saveState === "saving" ? (
-              <ArrowClockwise className="animate-spin" size={16} />
-            ) : (
-              <FloppyDisk size={16} />
-            )}
-            Save
-          </button>
-          <button
-            className={secondaryButtonClass}
-            onClick={exportPdf}
-            type="button"
-          >
-            <DownloadSimple size={16} />
-            PDF
-          </button>
-          <button
-            className={secondaryButtonClass}
-            onClick={exportDocx}
-            type="button"
-          >
-            <DownloadSimple size={16} />
-            DOCX
-          </button>
-          <button className={secondaryButtonClass} onClick={exportText} type="button">
-            <DownloadSimple size={16} />
-            TXT
-          </button>
-          <button
-            className={secondaryButtonClass}
-            onClick={exportLatex}
-            type="button"
-          >
-            <DownloadSimple size={16} />
-            LaTeX
-          </button>
         </div>
       </div>
 
@@ -298,16 +317,23 @@ export function LiveResumeEditor({
               {activeSource.split(/\r?\n/).length} lines
             </span>
           </div>
-          <textarea
-            className={editorClass}
-            onChange={(event) =>
-              document.mode === "latex"
-                ? onChange({ latexContent: event.target.value })
-                : onChange({ textContent: event.target.value })
-            }
-            spellCheck={document.mode === "text"}
-            value={activeSource}
-          />
+          <Suspense fallback={<SourceEditorLoadingState />}>
+            <SourceCodeEditor
+              ariaLabel={
+                document.mode === "latex"
+                  ? "LaTeX resume source"
+                  : "Text resume source"
+              }
+              className="xl:min-h-[calc(100dvh-20.5rem)]"
+              language={document.mode === "latex" ? "latex" : "text"}
+              onChange={(event) =>
+                document.mode === "latex"
+                  ? onChange({ latexContent: event })
+                  : onChange({ textContent: event })
+              }
+              value={activeSource}
+            />
+          </Suspense>
 
           <div className="grid gap-3 border-t border-zinc-200 bg-white px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="flex items-center justify-between gap-3">
@@ -437,6 +463,31 @@ function PaneButton({
     >
       {label}
     </button>
+  );
+}
+
+function ExportMenuButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="inline-flex h-9 items-center justify-start gap-2 rounded-md px-3 text-sm font-medium text-zinc-200 transition hover:bg-white/10 hover:text-white active:translate-y-px"
+      onClick={onClick}
+      type="button"
+    >
+      <DownloadSimple className="text-zinc-500" size={16} />
+      {label}
+    </button>
+  );
+}
+
+function SourceEditorLoadingState() {
+  return (
+    <div className="min-h-[28rem] animate-pulse bg-[#f3f1ec] xl:min-h-[calc(100dvh-20.5rem)]" />
   );
 }
 
