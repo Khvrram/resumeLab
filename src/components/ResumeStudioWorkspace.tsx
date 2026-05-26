@@ -15,8 +15,12 @@ import {
 import { buildResumeDraft, renderResumePlainText } from "../domain/resumeDraft";
 import {
   buildTailoringPrompt,
+  applyAiProposalReviewChanges,
+  createAiProposalReviewChanges,
   createTailoringProposal,
+  hashAiText,
   type AiProviderConfig,
+  type AiProposalReviewChange,
   type AiTailoringProposal,
 } from "../domain/aiTailoring";
 import {
@@ -47,6 +51,7 @@ import type { JobApplication, V2WorkspaceState } from "../domain/v2";
 
 type StudioSaveState = "idle" | "saving" | "saved" | "error";
 type AiRunState = "idle" | "saving-key" | "generating" | "applying" | "error";
+type AiReviewDecision = "accepted" | "rejected";
 
 type ResumeStudioWorkspaceProps = {
   onOpenEditor: () => void;
@@ -90,6 +95,19 @@ export function ResumeStudioWorkspace({
   const [apiKeyDraft, setApiKeyDraft] = useState("");
   const [aiRunState, setAiRunState] = useState<AiRunState>("idle");
   const [aiProposal, setAiProposal] = useState<AiTailoringProposal | null>(null);
+  const [approvedEgressFingerprint, setApprovedEgressFingerprint] = useState<
+    string | null
+  >(null);
+  const [aiReviewDecisions, setAiReviewDecisions] = useState<
+    Record<string, AiReviewDecision>
+  >({});
+  const [editedAiChangeTextById, setEditedAiChangeTextById] = useState<
+    Record<string, string>
+  >({});
+  const [
+    suggestedAdditionsAcknowledged,
+    setSuggestedAdditionsAcknowledged,
+  ] = useState(false);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const initialSelectedJobId = useRef(selectedJobId);
@@ -241,6 +259,59 @@ export function ResumeStudioWorkspace({
       null,
     [aiConfigs, selectedProviderId],
   );
+  const aiEgressFingerprint = useMemo(
+    () =>
+      hashAiText(
+        JSON.stringify({
+          activeJobId: activeJob?.id ?? null,
+          egressPreview,
+          provider: selectedProvider
+            ? {
+                baseUrl: selectedProvider.baseUrl,
+                id: selectedProvider.id,
+                model: selectedProvider.model,
+                provider: selectedProvider.provider,
+              }
+            : null,
+        }),
+      ),
+    [activeJob?.id, egressPreview, selectedProvider],
+  );
+  const hasApprovedCurrentEgress =
+    approvedEgressFingerprint === aiEgressFingerprint;
+  const aiReviewChanges = useMemo(
+    () =>
+      aiProposal
+        ? createAiProposalReviewChanges({
+            originalText: plainText,
+            proposal: aiProposal,
+          })
+        : [],
+    [aiProposal, plainText],
+  );
+  const isAiProposalStale = Boolean(
+    aiProposal &&
+      (aiProposal.jobApplicationId !== activeJob?.id ||
+        aiProposal.sourceResumeHash !== hashAiText(plainText)),
+  );
+  const reviewedChangeCount = aiReviewChanges.filter(
+    (change) => aiReviewDecisions[change.id],
+  ).length;
+  const acceptedChangeIds = useMemo(
+    () =>
+      new Set(
+        aiReviewChanges
+          .filter((change) => aiReviewDecisions[change.id] === "accepted")
+          .map((change) => change.id),
+      ),
+    [aiReviewChanges, aiReviewDecisions],
+  );
+  const hasAcceptedAiChanges = acceptedChangeIds.size > 0;
+  const hasReviewedAllAiChanges =
+    aiReviewChanges.length > 0 &&
+    reviewedChangeCount === aiReviewChanges.length;
+  const hasResolvedUnsupportedSuggestions =
+    !aiProposal?.suggestedAdditions.length || suggestedAdditionsAcknowledged;
   const canUseDesktopAi = Boolean(
     window.resumelab?.ai && window.resumelab.secrets,
   );
@@ -431,8 +502,36 @@ export function ResumeStudioWorkspace({
     }
   };
 
+  const approveCurrentEgress = () => {
+    setApprovedEgressFingerprint(aiEgressFingerprint);
+    setAiMessage("Approved this provider payload. You can generate a proposal.");
+  };
+
+  const setAiReviewDecision = (
+    change: AiProposalReviewChange,
+    decision: AiReviewDecision,
+  ) => {
+    setAiReviewDecisions((current) => ({
+      ...current,
+      [change.id]: decision,
+    }));
+
+    if (decision === "accepted") {
+      setEditedAiChangeTextById((current) => ({
+        ...current,
+        [change.id]: current[change.id] ?? change.afterLines.join("\n"),
+      }));
+    }
+  };
+
   const generateAiProposal = async () => {
     if (!activeJob || !selectedProvider) {
+      return;
+    }
+
+    if (!hasApprovedCurrentEgress) {
+      setAiRunState("error");
+      setAiMessage("Approve the current egress preview before sending an AI request.");
       return;
     }
 
@@ -450,6 +549,9 @@ export function ResumeStudioWorkspace({
     setAiRunState("generating");
     setAiMessage(null);
     setAiProposal(null);
+    setAiReviewDecisions({});
+    setEditedAiChangeTextById({});
+    setSuggestedAdditionsAcknowledged(false);
 
     try {
       const response = await window.resumelab.ai.generateTailoringProposal({
@@ -469,6 +571,9 @@ export function ResumeStudioWorkspace({
       });
 
       setAiProposal(proposal);
+      setAiReviewDecisions({});
+      setEditedAiChangeTextById({});
+      setSuggestedAdditionsAcknowledged(false);
       setAiRunState("idle");
       setAiMessage("Generated a proposal. Review it before applying.");
     } catch (error) {
@@ -479,6 +584,34 @@ export function ResumeStudioWorkspace({
 
   const applyAiProposal = async () => {
     if (!aiProposal || !activeJob || !profile || !draft) {
+      return;
+    }
+
+    if (isAiProposalStale) {
+      setAiRunState("error");
+      setAiMessage(
+        "This proposal is stale because the job or resume facts changed. Generate a fresh proposal.",
+      );
+      return;
+    }
+
+    if (!hasReviewedAllAiChanges) {
+      setAiRunState("error");
+      setAiMessage("Accept or reject every proposed change before applying.");
+      return;
+    }
+
+    if (!hasAcceptedAiChanges) {
+      setAiRunState("error");
+      setAiMessage("Accept at least one proposed change before applying.");
+      return;
+    }
+
+    if (!hasResolvedUnsupportedSuggestions) {
+      setAiRunState("error");
+      setAiMessage(
+        "Acknowledge the unsupported suggestions before applying approved changes.",
+      );
       return;
     }
 
@@ -500,9 +633,15 @@ export function ResumeStudioWorkspace({
         baseDocument,
         "Before AI proposal",
       );
+      const approvedProposalText = applyAiProposalReviewChanges({
+        acceptedChangeIds,
+        editedAfterTextById: editedAiChangeTextById,
+        originalText: plainText,
+        reviewChanges: aiReviewChanges,
+      });
       const updatedDocument = updateResumeDocumentContent(checkpointedDocument, {
         mode: "text",
-        textContent: restoreResumeHeader(aiProposal.revisedText, plainText),
+        textContent: restoreResumeHeader(approvedProposalText, plainText),
       });
 
       await resumeDocumentRepository.upsert(updatedDocument);
@@ -814,6 +953,27 @@ export function ResumeStudioWorkspace({
                 readOnly
                 value={egressPreview}
               />
+              <div className="mt-3 grid gap-2">
+                <button
+                  className={
+                    hasApprovedCurrentEgress
+                      ? secondaryButtonClass
+                      : primaryButtonClass
+                  }
+                  disabled={!canUseDesktopAi || !selectedProvider}
+                  onClick={approveCurrentEgress}
+                  type="button"
+                >
+                  <ShieldCheck size={17} />
+                  {hasApprovedCurrentEgress
+                    ? "Context approved"
+                    : "Approve this context"}
+                </button>
+                <p className="text-xs leading-5 text-zinc-500">
+                  Approval resets whenever the target, provider, model, base URL,
+                  or resume context changes.
+                </p>
+              </div>
             </div>
           </section>
 
@@ -927,6 +1087,7 @@ export function ResumeStudioWorkspace({
                 disabled={
                   !canUseDesktopAi ||
                   !selectedProvider?.hasSecret ||
+                  !hasApprovedCurrentEgress ||
                   !activeJob?.jobDescription.trim() ||
                   aiRunState === "generating"
                 }
@@ -938,7 +1099,9 @@ export function ResumeStudioWorkspace({
                 ) : (
                   <CheckCircle size={17} />
                 )}
-                Generate proposal
+                {hasApprovedCurrentEgress
+                  ? "Generate proposal"
+                  : "Approve context first"}
               </button>
 
               {aiMessage ? (
@@ -957,34 +1120,137 @@ export function ResumeStudioWorkspace({
                 <div className="grid gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3">
                   <div>
                     <p className="text-sm font-semibold text-zinc-950">
-                      Proposal ready
+                      Review proposal
                     </p>
                     <p className="mt-1 text-xs leading-5 text-zinc-500">
-                      {aiProposal.provider} / {aiProposal.model}
+                      {aiProposal.provider} / {aiProposal.model} /{" "}
+                      {reviewedChangeCount} of {aiReviewChanges.length} reviewed
                     </p>
                   </div>
-                  <textarea
-                    className={`${textareaClass} min-h-52 font-mono text-xs leading-5`}
-                    readOnly
-                    value={aiProposal.revisedText}
-                  />
+
+                  {isAiProposalStale ? (
+                    <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-900">
+                      This proposal is stale because the selected job or source
+                      resume changed. Generate a fresh proposal before applying.
+                    </div>
+                  ) : null}
+
+                  {aiReviewChanges.length > 0 ? (
+                    <div className="grid gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          className={secondaryButtonClass}
+                          onClick={() => {
+                            const nextDecisions: Record<string, AiReviewDecision> =
+                              {};
+                            const nextEdits: Record<string, string> = {};
+
+                            aiReviewChanges.forEach((change) => {
+                              nextDecisions[change.id] = "accepted";
+                              nextEdits[change.id] = change.afterLines.join("\n");
+                            });
+
+                            setAiReviewDecisions(nextDecisions);
+                            setEditedAiChangeTextById(nextEdits);
+                          }}
+                          type="button"
+                        >
+                          Accept all safe changes
+                        </button>
+                        <button
+                          className={secondaryButtonClass}
+                          onClick={() => {
+                            const nextDecisions: Record<string, AiReviewDecision> =
+                              {};
+
+                            aiReviewChanges.forEach((change) => {
+                              nextDecisions[change.id] = "rejected";
+                            });
+
+                            setAiReviewDecisions(nextDecisions);
+                          }}
+                          type="button"
+                        >
+                          Reject all
+                        </button>
+                      </div>
+
+                      {aiReviewChanges.map((change) => (
+                        <AiReviewChangeCard
+                          change={change}
+                          decision={aiReviewDecisions[change.id] ?? null}
+                          editedAfterText={
+                            editedAiChangeTextById[change.id] ??
+                            change.afterLines.join("\n")
+                          }
+                          key={change.id}
+                          onDecision={(decision) =>
+                            setAiReviewDecision(change, decision)
+                          }
+                          onEdit={(value) =>
+                            setEditedAiChangeTextById((current) => ({
+                              ...current,
+                              [change.id]: value,
+                            }))
+                          }
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-md border border-zinc-200 bg-white p-3 text-xs leading-5 text-zinc-600">
+                      The provider returned no safe resume text changes. Review
+                      suggested additions below or regenerate the proposal.
+                    </div>
+                  )}
+
                   {aiProposal.suggestedAdditions.length > 0 ? (
                     <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
-                      <p className="font-semibold">Needs user confirmation</p>
+                      <p className="font-semibold">
+                        Unsupported suggestions stay out of the resume
+                      </p>
+                      <p className="mt-1">
+                        These items are not applied unless you later add them as
+                        user-authored facts.
+                      </p>
                       <ul className="mt-2 list-disc space-y-1 pl-4">
                         {aiProposal.suggestedAdditions.map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
+                      <label className="mt-3 flex items-start gap-2">
+                        <input
+                          checked={suggestedAdditionsAcknowledged}
+                          className="mt-1"
+                          onChange={(event) =>
+                            setSuggestedAdditionsAcknowledged(
+                              event.target.checked,
+                            )
+                          }
+                          type="checkbox"
+                        />
+                        <span>
+                          Keep these out of the resume and continue only with
+                          approved diff changes.
+                        </span>
+                      </label>
                     </div>
                   ) : null}
+
                   <button
                     className={primaryButtonClass}
-                    disabled={aiRunState === "applying"}
+                    disabled={
+                      aiRunState === "applying" ||
+                      isAiProposalStale ||
+                      !hasReviewedAllAiChanges ||
+                      !hasAcceptedAiChanges ||
+                      !hasResolvedUnsupportedSuggestions
+                    }
                     onClick={() => void applyAiProposal()}
                     type="button"
                   >
-                    Open proposal in editor
+                    {aiRunState === "applying"
+                      ? "Applying approved changes"
+                      : "Apply approved changes"}
                   </button>
                 </div>
               ) : null}
@@ -1016,6 +1282,111 @@ export function ResumeStudioWorkspace({
         </aside>
       </div>
     </main>
+  );
+}
+
+function AiReviewChangeCard({
+  change,
+  decision,
+  editedAfterText,
+  onDecision,
+  onEdit,
+}: {
+  change: AiProposalReviewChange;
+  decision: AiReviewDecision | null;
+  editedAfterText: string;
+  onDecision: (decision: AiReviewDecision) => void;
+  onEdit: (value: string) => void;
+}) {
+  const isAccepted = decision === "accepted";
+  const isRejected = decision === "rejected";
+
+  return (
+    <article
+      className={`grid gap-3 rounded-md border bg-white p-3 ${
+        isAccepted
+          ? "border-emerald-200"
+          : isRejected
+            ? "border-zinc-200 opacity-75"
+            : "border-amber-200"
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-zinc-950">
+            {change.section} / {formatChangeKind(change.kind)}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-zinc-500">
+            {formatReviewLineRange(change)}
+          </p>
+        </div>
+        <span
+          className={`rounded-md border px-2.5 py-1 text-xs font-medium ${
+            isAccepted
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : isRejected
+                ? "border-zinc-200 bg-zinc-50 text-zinc-600"
+                : "border-amber-200 bg-amber-50 text-amber-800"
+          }`}
+        >
+          {isAccepted ? "Accepted" : isRejected ? "Rejected" : "Needs review"}
+        </span>
+      </div>
+
+      <p className="rounded-md border border-zinc-200 bg-zinc-50 p-2 text-xs leading-5 text-zinc-600">
+        {change.rationale}
+      </p>
+
+      <div className="grid gap-2">
+        <label className="grid gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            Current
+          </span>
+          <pre className="max-h-36 overflow-auto whitespace-pre-wrap rounded-md border border-red-100 bg-red-50 p-2 font-mono text-xs leading-5 text-red-950">
+            {change.beforeLines.join("\n") || "[new text]"}
+          </pre>
+        </label>
+
+        <label className="grid gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            Proposed
+          </span>
+          <textarea
+            className={`${textareaClass} min-h-28 font-mono text-xs leading-5 ${
+              isAccepted ? "border-emerald-300 bg-emerald-50" : ""
+            }`}
+            disabled={isRejected}
+            onChange={(event) => onEdit(event.target.value)}
+            value={editedAfterText}
+          />
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          className={
+            isAccepted
+              ? primaryButtonClass
+              : "inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-sm font-medium text-emerald-900 transition hover:bg-emerald-100 active:translate-y-px"
+          }
+          onClick={() => onDecision("accepted")}
+          type="button"
+        >
+          Accept
+        </button>
+        <button
+          className={
+            isRejected
+              ? primaryButtonClass
+              : "inline-flex h-10 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px"
+          }
+          onClick={() => onDecision("rejected")}
+          type="button"
+        >
+          Reject
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -1187,6 +1558,39 @@ function restoreResumeHeader(proposedText: string, currentText: string) {
   ]
     .join("\n")
     .trim();
+}
+
+function formatChangeKind(kind: AiProposalReviewChange["kind"]) {
+  if (kind === "insert") {
+    return "Insert";
+  }
+
+  if (kind === "delete") {
+    return "Remove";
+  }
+
+  return "Replace";
+}
+
+function formatReviewLineRange(change: AiProposalReviewChange) {
+  const beforeRange = formatLineRange(
+    change.beforeStartLine + 1,
+    change.beforeEndLine,
+  );
+  const afterRange = formatLineRange(
+    change.afterStartLine + 1,
+    change.afterEndLine,
+  );
+
+  return `Current ${beforeRange} -> Proposed ${afterRange}`;
+}
+
+function formatLineRange(start: number, end: number) {
+  if (end < start) {
+    return "new line";
+  }
+
+  return start === end ? `line ${start}` : `lines ${start}-${end}`;
 }
 
 function formatError(error: unknown) {
