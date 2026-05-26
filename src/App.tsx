@@ -3,6 +3,8 @@ import {
   Briefcase,
   Database,
   FileText,
+  Gear,
+  House,
   NotePencil,
   type Icon,
 } from "@phosphor-icons/react";
@@ -24,25 +26,25 @@ const workspaceModeOptions: WorkspaceModeOption[] = [
   {
     id: "studio",
     label: "Studio",
-    description: "Tailor inputs",
+    description: "Tailor for a job",
     icon: Briefcase,
   },
   {
     id: "editor",
     label: "Editor",
-    description: "Live resume",
+    description: "Resume document",
     icon: NotePencil,
   },
   {
     id: "profile",
     label: "Profile",
-    description: "Career facts",
+    description: "Career vault",
     icon: Database,
   },
   {
     id: "library",
-    label: "Jobs",
-    description: "Targets and templates",
+    label: "Library",
+    description: "Jobs & templates",
     icon: FileText,
   },
 ];
@@ -100,44 +102,59 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-[100dvh] text-zinc-950 ${
-        isEditorMode ? "bg-zinc-950" : "bg-zinc-100"
+      className={`flex min-h-[100dvh] flex-col text-zinc-900 ${
+        isEditorMode ? "bg-zinc-950" : "bg-zinc-50"
       }`}
     >
+      {/* Header */}
       <header
-        className={`sticky top-0 z-50 border-b backdrop-blur ${
+        className={`sticky top-0 z-50 border-b backdrop-blur-sm ${
           isEditorMode
-            ? "border-white/10 bg-zinc-950/95 text-white"
-            : "border-zinc-200 bg-white/95"
+            ? "border-white/[0.08] bg-zinc-950/95 text-white"
+            : "border-zinc-200/80 bg-white/95"
         }`}
       >
-        <div className="mx-auto flex max-w-[1720px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="min-w-0">
-            <p
-              className={`truncate text-sm font-semibold ${
-                isEditorMode ? "text-white" : "text-zinc-950"
+        <div className="mx-auto flex h-14 max-w-[1800px] items-center gap-5 px-5">
+          {/* Logo */}
+          <div className="flex shrink-0 items-center gap-2.5">
+            <div
+              className={`flex size-7 items-center justify-center rounded-md text-[0.65rem] font-bold tracking-wider ${
+                isEditorMode
+                  ? "bg-white/10 text-white"
+                  : "bg-zinc-900 text-white"
               }`}
             >
-              ResumeLab
-            </p>
-            <p
-              className={`truncate text-xs ${
-                isEditorMode ? "text-zinc-400" : "text-zinc-500"
-              }`}
-            >
-              {isEditorMode
-                ? "Dedicated resume editor"
-                : "Local-first tailoring workspace"}
-            </p>
+              RL
+            </div>
+            <div>
+              <p
+                className={`text-[0.8rem] font-semibold leading-none tracking-tight ${
+                  isEditorMode ? "text-white" : "text-zinc-900"
+                }`}
+              >
+                ResumeLab
+              </p>
+              <p
+                className={`mt-0.5 text-[0.65rem] leading-none ${
+                  isEditorMode ? "text-zinc-500" : "text-zinc-400"
+                }`}
+              >
+                Local-first resume editor
+              </p>
+            </div>
           </div>
 
+          {/* Nav separator */}
           <div
-            aria-label="Workspace mode"
-            className={`grid grid-cols-4 gap-1 rounded-md border p-1 ${
-              isEditorMode
-                ? "border-white/10 bg-white/5"
-                : "border-zinc-200 bg-zinc-100"
+            className={`mx-1 h-5 w-px ${
+              isEditorMode ? "bg-white/10" : "bg-zinc-200"
             }`}
+          />
+
+          {/* Navigation */}
+          <nav
+            aria-label="Workspace"
+            className="flex gap-0.5"
             role="tablist"
           >
             {workspaceModeOptions.map((option) => {
@@ -147,65 +164,92 @@ export default function App() {
               return (
                 <button
                   aria-selected={isActive}
-                  className={`flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-md px-2 text-left transition active:translate-y-px sm:justify-start sm:px-3 md:min-w-36 ${
+                  className={`flex h-9 items-center gap-2 rounded-lg px-3 text-[0.8rem] font-medium transition-all ${
                     isActive
-                      ? "bg-white text-zinc-950 shadow-sm"
+                      ? isEditorMode
+                        ? "bg-white/[0.12] text-white"
+                        : "bg-zinc-100 text-zinc-900"
                       : isEditorMode
-                        ? "text-zinc-400 hover:bg-white/10 hover:text-white"
-                        : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+                        ? "text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-300"
+                        : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
                   }`}
                   key={option.id}
                   onClick={() => setWorkspaceMode(option.id)}
                   role="tab"
+                  title={`${option.label} \u2014 ${option.description}`}
                   type="button"
                 >
                   <IconComponent
-                    size={18}
+                    size={16}
                     weight={isActive ? "fill" : "regular"}
                   />
-                  <span className="min-w-0">
-                    <span className="block truncate text-xs font-medium sm:text-sm">
-                      {option.label}
-                    </span>
-                    <span
-                      className={`hidden truncate text-xs sm:block ${
-                        isActive
-                          ? "text-zinc-500"
-                          : isEditorMode
-                            ? "text-zinc-500"
-                            : "text-zinc-500"
-                      }`}
-                    >
-                      {option.description}
-                    </span>
-                  </span>
+                  {option.label}
                 </button>
               );
             })}
-          </div>
+          </nav>
+
+          {/* Right side spacer */}
+          <div className="flex-1" />
+
+          {/* Status indicator */}
+          <StatusPill isEditorMode={isEditorMode} />
         </div>
       </header>
 
-      {workspaceMode === "studio" ? (
-        <ResumeStudioWorkspace
-          onOpenEditor={() => setWorkspaceMode("editor")}
-          onOpenLibrary={() => setWorkspaceMode("library")}
-          onOpenProfile={() => setWorkspaceMode("profile")}
-          onSelectJob={handleSelectJob}
-          selectedJobId={selectedJobId}
-        />
-      ) : workspaceMode === "editor" ? (
-        <ResumeEditorWorkspace
-          onOpenProfile={() => setWorkspaceMode("profile")}
-          onOpenStudio={() => setWorkspaceMode("studio")}
-          onSelectJob={handleSelectJob}
-          selectedJobId={selectedJobId}
-        />
-      ) : workspaceMode === "profile" ? (
-        <ProfileVaultWorkspace />
-      ) : (
-        <V2Workspace />
-      )}
+      {/* Content */}
+      <div className="flex-1">
+        {workspaceMode === "studio" ? (
+          <ResumeStudioWorkspace
+            onOpenEditor={() => setWorkspaceMode("editor")}
+            onOpenLibrary={() => setWorkspaceMode("library")}
+            onOpenProfile={() => setWorkspaceMode("profile")}
+            onSelectJob={handleSelectJob}
+            selectedJobId={selectedJobId}
+          />
+        ) : workspaceMode === "editor" ? (
+          <ResumeEditorWorkspace
+            onOpenProfile={() => setWorkspaceMode("profile")}
+            onOpenStudio={() => setWorkspaceMode("studio")}
+            onSelectJob={handleSelectJob}
+            selectedJobId={selectedJobId}
+          />
+        ) : workspaceMode === "profile" ? (
+          <ProfileVaultWorkspace />
+        ) : (
+          <V2Workspace />
+        )}
+      </div>
     </div>
   );
 }
+
+function StatusPill({ isEditorMode }: { isEditorMode: boolean }) {
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    const update = () => setIsOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+
+  return (
+    <div
+      className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.68rem] font-medium ${
+        isEditorMode ? "text-zinc-500" : "text-zinc-400"
+      }`}
+    >
+      <span
+        className={`size-1.5 rounded-full ${
+          isOnline ? "bg-emerald-400" : "bg-amber-400"
+        }`}
+      />
+      {isOnline ? "Local" : "Offline"}
+    </div>
+  );
+}
+

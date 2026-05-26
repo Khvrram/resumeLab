@@ -7,6 +7,7 @@ const {
   shell,
 } = require("electron");
 const fs = require("node:fs/promises");
+const fsSync = require("node:fs");
 const path = require("node:path");
 const { generateTailoringProposal } = require("./aiProviders.cjs");
 const { saveResumeArtifact } = require("./fileExports.cjs");
@@ -44,7 +45,7 @@ function createMainWindow() {
     height: 820,
     minWidth: 960,
     minHeight: 640,
-    backgroundColor: "#fafafa",
+    backgroundColor: "#fafaf9",
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -114,6 +115,79 @@ ipcMain.handle("files:save-resume-artifact", (_event, request) =>
     writeFile: (filePath, buffer) => fs.writeFile(filePath, buffer),
   }),
 );
+
+// Backup: export all local data to a JSON file
+ipcMain.handle("backup:export", async () => {
+  const result = await dialog.showSaveDialog({
+    defaultPath: `resumelab-backup-${new Date().toISOString().slice(0, 10)}.json`,
+    filters: [{ extensions: ["json"], name: "ResumeLab Backup" }],
+    properties: ["createDirectory", "showOverwriteConfirmation"],
+    title: "Export ResumeLab Backup",
+  });
+
+  if (result.canceled || !result.filePath) {
+    return { canceled: true, filePath: null };
+  }
+
+  const records = getJsonStore().exportAll();
+  const backup = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    application: "ResumeLab",
+    records: Object.fromEntries(
+      records.map((row) => [row.key, JSON.parse(row.value)]),
+    ),
+  };
+
+  await fs.writeFile(
+    result.filePath,
+    JSON.stringify(backup, null, 2),
+    "utf8",
+  );
+
+  return { canceled: false, filePath: result.filePath };
+});
+
+// Backup: import data from a JSON file
+ipcMain.handle("backup:import", async () => {
+  const result = await dialog.showOpenDialog({
+    filters: [{ extensions: ["json"], name: "ResumeLab Backup" }],
+    properties: ["openFile"],
+    title: "Import ResumeLab Backup",
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return { canceled: true, imported: 0 };
+  }
+
+  const filePath = result.filePaths[0];
+  const raw = await fs.readFile(filePath, "utf8");
+  let backup;
+
+  try {
+    backup = JSON.parse(raw);
+  } catch {
+    throw new Error("The selected file is not valid JSON.");
+  }
+
+  if (!backup || typeof backup !== "object" || !backup.records) {
+    throw new Error(
+      "This file does not appear to be a ResumeLab backup. Expected a JSON object with a 'records' field.",
+    );
+  }
+
+  const store = getJsonStore();
+  let imported = 0;
+
+  for (const [key, value] of Object.entries(backup.records)) {
+    if (typeof key === "string" && /^[a-zA-Z0-9._:-]{1,160}$/.test(key)) {
+      store.setItem(key, JSON.stringify(value));
+      imported++;
+    }
+  }
+
+  return { canceled: false, imported };
+});
 
 app.whenReady().then(() => {
   createMainWindow();

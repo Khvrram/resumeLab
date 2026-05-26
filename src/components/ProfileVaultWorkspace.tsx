@@ -6,6 +6,7 @@ import {
   CloudSlash,
   Database,
   DownloadSimple,
+  UploadSimple,
   Eye,
   EyeSlash,
   FileText,
@@ -134,16 +135,16 @@ const navItems: NavItem[] = [
 ];
 
 const inputClass =
-  "min-h-10 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-100";
+  "min-h-10 w-full min-w-0 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 disabled:cursor-not-allowed disabled:bg-zinc-50";
 
 const textareaClass =
-  "min-h-28 w-full min-w-0 resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200";
+  "min-h-28 w-full min-w-0 resize-y rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100";
 
 const primaryButtonClass =
-  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 active:translate-y-px disabled:cursor-not-allowed disabled:bg-zinc-400 disabled:active:translate-y-0";
+  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 active:translate-y-px disabled:cursor-not-allowed disabled:bg-zinc-400 disabled:active:translate-y-0";
 
 const secondaryButtonClass =
-  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400 disabled:active:translate-y-0";
+  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400 disabled:active:translate-y-0";
 
 const dangerButtonClass =
   "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-red-200 bg-white px-3 text-sm font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px";
@@ -436,10 +437,10 @@ function WorkspaceSidebar({
   visibilityCounts: Record<VisibilityStatus, number> | null;
 }) {
   return (
-    <aside className="flex shrink-0 flex-col border-b border-zinc-200 bg-zinc-950 text-zinc-100 lg:w-72 lg:border-b-0 lg:border-r">
+    <aside className="flex shrink-0 flex-col border-b border-zinc-200 bg-zinc-900 text-zinc-100 lg:w-64 lg:border-b-0 lg:border-r">
       <div className="flex items-center justify-between gap-4 px-4 py-4 lg:px-5">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-800">
             <Vault size={22} weight="duotone" />
           </div>
           <div className="min-w-0">
@@ -483,7 +484,7 @@ function WorkspaceSidebar({
       </nav>
 
       <div className="mt-auto hidden border-t border-zinc-800 p-5 lg:block">
-        <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+        <div className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-zinc-500">
           <Database size={15} />
           Fact status
         </div>
@@ -529,9 +530,6 @@ function WorkspaceHeader({
       <div className="mx-auto flex max-w-6xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-600">
-              Phase 1
-            </span>
             <span className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600">
               {statusLabel}
             </span>
@@ -551,19 +549,22 @@ function WorkspaceHeader({
             disabled={isLoading || saveState === "saving"}
             onClick={onResetSampleData}
             type="button"
+            title="Load example data to explore the app"
           >
-            <ArrowClockwise size={17} />
-            Load sample data
+            <ArrowClockwise size={16} />
+            Sample data
           </button>
           <button
             className={secondaryButtonClass}
             disabled={isLoading}
             onClick={onExportJson}
             type="button"
+            title="Export profile as JSON"
           >
-            <DownloadSimple size={17} />
-            Export JSON
+            <DownloadSimple size={16} />
+            Export
           </button>
+          <BackupRestoreButtons isLoading={isLoading} />
           <button
             className={primaryButtonClass}
             disabled={!isDirty || isLoading || saveState === "saving"}
@@ -571,11 +572,11 @@ function WorkspaceHeader({
             type="button"
           >
             {saveState === "saving" ? (
-              <ArrowClockwise className="animate-spin" size={17} />
+              <ArrowClockwise className="animate-spin" size={16} />
             ) : (
-              <FloppyDisk size={17} />
+              <FloppyDisk size={16} />
             )}
-            {saveState === "saving" ? "Saving" : "Save"}
+            {saveState === "saving" ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
@@ -2119,6 +2120,80 @@ function PrivacyMetric({
         </div>
         <span className="font-mono text-lg font-semibold">{count}</span>
       </div>
+    </div>
+  );
+}
+
+
+
+
+
+function BackupRestoreButtons({ isLoading }: { isLoading: boolean }) {
+  const [isWorking, setIsWorking] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    if (!window.resumelab?.backup?.exportBackup) return;
+    setIsWorking(true);
+    setNotice(null);
+    try {
+      const result = await window.resumelab.backup.exportBackup();
+      if (!result.canceled) {
+        setNotice(`Backup saved to ${result.filePath}`);
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Backup export failed.");
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!window.resumelab?.backup?.importBackup) return;
+    const confirmed = window.confirm(
+      "Importing a backup will overwrite current data. Continue?"
+    );
+    if (!confirmed) return;
+    setIsWorking(true);
+    setNotice(null);
+    try {
+      const result = await window.resumelab.backup.importBackup();
+      if (!result.canceled) {
+        setNotice(`Imported ${result.imported} records. Reload to see changes.`);
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Backup import failed.");
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        className={secondaryButtonClass}
+        disabled={isLoading || isWorking}
+        onClick={handleExport}
+        type="button"
+        title="Save all data to a backup file"
+      >
+        <DownloadSimple size={16} />
+        Backup
+      </button>
+      <button
+        className={secondaryButtonClass}
+        disabled={isLoading || isWorking}
+        onClick={handleImport}
+        type="button"
+        title="Restore data from a backup file"
+      >
+        <UploadSimple size={16} />
+        Restore
+      </button>
+      {notice ? (
+        <span className="ml-2 text-xs text-zinc-500">{notice}</span>
+      ) : null}
     </div>
   );
 }

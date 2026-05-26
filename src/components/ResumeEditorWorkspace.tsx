@@ -43,8 +43,7 @@ type ResumeEditorWorkspaceProps = {
 const documentRepository = createResumeDocumentRepository();
 const v2Repository = createV2Repository();
 
-const toolbarSelectClass =
-  "h-10 min-w-0 rounded-md border border-white/15 bg-zinc-950 px-3 text-sm text-white outline-none transition focus:border-white/40 focus:ring-2 focus:ring-white/10";
+const toolbarSelectClass = "h-9 min-w-0 rounded-lg border border-white/10 bg-zinc-950 px-3 text-sm text-white outline-none transition focus:border-white/30 focus:ring-1 focus:ring-white/10";
 
 export function ResumeEditorWorkspace({
   onOpenProfile,
@@ -302,7 +301,7 @@ export function ResumeEditorWorkspace({
   const isStale = activeDocument.sourceProfileUpdatedAt !== profile.updatedAt;
 
   return (
-    <main className="min-h-[calc(100dvh-65px)] bg-[#0d0d0f] text-white">
+    <main className="min-h-[calc(100dvh-65px)] bg-zinc-950 text-white">
       <div className="mx-auto grid max-w-[1720px] gap-3 px-3 py-3 sm:px-5">
         <section className="grid gap-4 rounded-lg border border-white/10 bg-[#161619] px-4 py-3 shadow-[0_22px_70px_-48px_rgba(0,0,0,0.95)] lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-end">
           <div className="min-w-0">
@@ -420,7 +419,7 @@ function EditorEmptyState({
   onOpenStudio: () => void;
 }) {
   return (
-    <main className="min-h-[calc(100dvh-65px)] bg-[#0d0d0f] text-white">
+    <main className="min-h-[calc(100dvh-65px)] bg-zinc-950 text-white">
       <div className="mx-auto grid max-w-[1120px] gap-5 px-4 py-6 sm:px-6">
         <section className="grid min-h-[34rem] content-center gap-6 rounded-lg border border-white/10 bg-[#161619] p-6 shadow-[0_34px_90px_-55px_rgba(0,0,0,0.95)] sm:p-10">
           <div className="max-w-2xl">
@@ -582,3 +581,4 @@ function formatError(error: unknown) {
     ? error.message
     : "An unexpected editor error occurred.";
 }
+

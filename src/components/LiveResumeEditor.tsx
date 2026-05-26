@@ -87,31 +87,31 @@ const modeOptions: Array<{
 ];
 
 const secondaryButtonClass =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 text-sm font-medium text-white transition hover:bg-white/10 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40";
 
 const darkButtonClass =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 text-sm font-medium text-white transition hover:bg-white/10 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40";
 
 const lightButtonClass =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-300";
 
 const compactLightButtonClass =
-  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-zinc-300 bg-white px-2.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 text-xs font-medium text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-300";
 
 const dangerLightButtonClass =
-  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-red-200 bg-white px-2.5 text-xs font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px";
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-2.5 text-xs font-medium text-red-600 transition hover:bg-red-50 active:translate-y-px";
 
 const sectionIconButtonClass =
-  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-600 transition hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-950 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-300";
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-300";
 
 const sectionIconDangerButtonClass =
   "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-red-200 bg-white text-red-600 transition hover:bg-red-50 active:translate-y-px";
 
 const saveButtonClass =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-white px-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 active:translate-y-px disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-white px-3 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-100 active:translate-y-px disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500";
 
 const toolbarGroupClass =
-  "flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-white/10 bg-zinc-950/65 p-1.5";
+  "flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-white/[0.06] bg-zinc-900/60 p-1.5";
 
 const toolbarLabelClass =
   "hidden px-1.5 text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-zinc-500 md:inline";
@@ -1242,3 +1242,4 @@ function textToLines(value: string) {
     .map((line) => line.trim())
     .filter(Boolean);
 }
+

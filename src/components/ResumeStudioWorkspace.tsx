@@ -66,17 +66,13 @@ const v2Repository = createV2Repository();
 const aiSettingsRepository = createAiSettingsRepository();
 const resumeDocumentRepository = createResumeDocumentRepository();
 
-const inputClass =
-  "min-h-10 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200";
+const inputClass = "min-h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100";
 
-const textareaClass =
-  "min-h-28 w-full resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-950 outline-none transition focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200";
+const textareaClass = "min-h-28 w-full resize-y rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100";
 
-const primaryButtonClass =
-  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 active:translate-y-px disabled:cursor-not-allowed disabled:bg-zinc-400";
+const primaryButtonClass = "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 active:translate-y-px disabled:cursor-not-allowed disabled:bg-zinc-300";
 
-const secondaryButtonClass =
-  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-400";
+const secondaryButtonClass = "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 active:translate-y-px disabled:cursor-not-allowed disabled:text-zinc-300";
 
 export function ResumeStudioWorkspace({
   onOpenEditor,
@@ -681,7 +677,7 @@ export function ResumeStudioWorkspace({
   const hasEgressContext = !profileIsEmpty && egressPreview.trim().length > 0;
 
   return (
-    <main className="min-h-[calc(100dvh-73px)] bg-[#f7f7f4] text-zinc-950">
+    <main className="min-h-[calc(100dvh-73px)] bg-zinc-50 text-zinc-950">
       <div className="mx-auto grid max-w-[1500px] gap-5 px-4 py-5 sm:px-6 xl:grid-cols-[18rem_minmax(0,1fr)_23rem]">
         <aside className="grid content-start gap-4">
           <section className="rounded-lg border border-zinc-200 bg-zinc-950 p-4 text-white shadow-[0_18px_45px_-30px_rgba(24,24,27,0.45)]">
@@ -1564,7 +1560,7 @@ function Notice({
 
 function StudioLoadingState() {
   return (
-    <main className="min-h-[calc(100dvh-73px)] bg-[#f7f7f4] p-5">
+    <main className="min-h-[calc(100dvh-73px)] bg-zinc-50 p-5">
       <div className="mx-auto grid max-w-[1500px] gap-5 xl:grid-cols-[18rem_minmax(0,1fr)_23rem]">
         <div className="h-96 animate-pulse rounded-lg bg-zinc-200" />
         <div className="h-[38rem] animate-pulse rounded-lg bg-white" />
@@ -1643,3 +1639,4 @@ function formatError(error: unknown) {
     ? error.message
     : "An unexpected studio error occurred.";
 }
+

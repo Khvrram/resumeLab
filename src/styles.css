@@ -1,20 +1,19 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Inter", "Aptos", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+}
+
 :root {
-  font-family:
-    Geist,
-    "Aptos",
-    "Segoe UI",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: var(--font-sans);
   color: #18181b;
-  background: #fafafa;
+  background: #fafaf9;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 * {
@@ -22,12 +21,14 @@
 }
 
 html {
-  background: #fafafa;
+  background: #fafaf9;
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100dvh;
 }
 
 button,
@@ -36,3 +37,34 @@ textarea,
 select {
   font: inherit;
 }
+
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: #bfdbfe;
+  color: #1e293b;
+}
+
+/* Scrollbar styling for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+

@@ -5,6 +5,10 @@ contextBridge.exposeInMainWorld("resumelab", {
     generateTailoringProposal: (request) =>
       ipcRenderer.invoke("ai:generate-tailoring-proposal", request),
   },
+  backup: {
+    exportBackup: () => ipcRenderer.invoke("backup:export"),
+    importBackup: () => ipcRenderer.invoke("backup:import"),
+  },
   getRuntime: () => ipcRenderer.invoke("app:get-runtime"),
   files: {
     saveResumeArtifact: (request) =>
