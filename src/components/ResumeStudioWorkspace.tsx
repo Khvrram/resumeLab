@@ -5,6 +5,7 @@ import {
   CheckCircle,
   Database,
   DownloadSimple,
+  FileArrowUp,
   FileText,
   FloppyDisk,
   LockKey,
@@ -106,6 +107,8 @@ export function ResumeStudioWorkspace({
     setSuggestedAdditionsAcknowledged,
   ] = useState(false);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const [styleContextText, setStyleContextText] = useState<string | null>(null);
+  const [styleContextFileName, setStyleContextFileName] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const initialSelectedJobId = useRef(selectedJobId);
 
@@ -499,6 +502,32 @@ export function ResumeStudioWorkspace({
     }
   };
 
+  const handleStyleContextUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500_000) {
+      setErrorMessage("Style context file is too large (max 500KB).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result;
+      if (typeof text === "string") {
+        setStyleContextText(text);
+        setStyleContextFileName(file.name);
+        setAiMessage(`Loaded "${file.name}" as style context. This text will be included as reference in AI prompts but will not overwrite your profile facts.`);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+  };
+
+  const clearStyleContext = () => {
+    setStyleContextText(null);
+    setStyleContextFileName(null);
+    setAiMessage("Cleared style context reference.");
+  };
+
   const approveCurrentEgress = () => {
     setApprovedEgressFingerprint(aiEgressFingerprint);
     setAiMessage("Approved this provider payload. You can generate a proposal.");
@@ -538,9 +567,12 @@ export function ResumeStudioWorkspace({
       return;
     }
 
+    const styleRef = styleContextText
+      ? `\n\nReference resume for style/tone/structure only (do not use as factual source):\n${styleContextText.slice(0, 3000)}`
+      : "";
     const prompt = buildTailoringPrompt({
       job: activeJob,
-      resumeText: aiResumeText,
+      resumeText: aiResumeText + styleRef,
     });
 
     setAiRunState("generating");
@@ -721,13 +753,14 @@ export function ResumeStudioWorkspace({
           </section>
 
           <section className="rounded-lg border border-zinc-200 bg-white p-3">
+            <p className="mb-2 text-xs font-medium uppercase tracking-widest text-zinc-400">Quick links</p>
             <div className="grid gap-2">
               <button
                 className={secondaryButtonClass}
                 onClick={() => void openEditor()}
                 type="button"
               >
-                <FileText size={17} />
+                <FileText size={16} />
                 Resume editor
               </button>
               <button
@@ -735,7 +768,7 @@ export function ResumeStudioWorkspace({
                 onClick={onOpenProfile}
                 type="button"
               >
-                <Database size={17} />
+                <Database size={16} />
                 Full profile editor
               </button>
               <button
@@ -743,9 +776,47 @@ export function ResumeStudioWorkspace({
                 onClick={onOpenLibrary}
                 type="button"
               >
-                <Stack size={17} />
-                Templates and models
+                <Stack size={16} />
+                Templates &amp; models
               </button>
+            </div>
+          </section>
+
+          {/* Style context upload */}
+          <section className="rounded-lg border border-zinc-200 bg-white p-3">
+            <p className="mb-1 text-xs font-medium uppercase tracking-widest text-zinc-400">
+              Style context
+            </p>
+            <p className="text-xs leading-5 text-zinc-500">
+              Optionally attach an existing resume for AI to reference its tone and structure.
+              Your profile facts remain the source of truth.
+            </p>
+            <div className="mt-3">
+              {styleContextFileName ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
+                  <span className="truncate text-xs font-medium text-zinc-700">
+                    {styleContextFileName}
+                  </span>
+                  <button
+                    className="shrink-0 text-xs text-zinc-500 hover:text-red-600"
+                    onClick={clearStyleContext}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 py-4 text-xs font-medium text-zinc-500 transition hover:border-zinc-400 hover:bg-zinc-100">
+                  <FileArrowUp size={16} />
+                  Upload resume file
+                  <input
+                    accept=".txt,.tex,.pdf,.doc,.docx,.md"
+                    className="hidden"
+                    onChange={handleStyleContextUpload}
+                    type="file"
+                  />
+                </label>
+              )}
             </div>
           </section>
         </aside>
@@ -1639,6 +1710,10 @@ function formatError(error: unknown) {
     ? error.message
     : "An unexpected studio error occurred.";
 }
+
+
+
+
 
 
 
